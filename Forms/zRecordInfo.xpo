@@ -1,0 +1,1714 @@
+﻿Exportfile for AOT version 1.0 or later
+Formatversion: 1
+
+***Element: FRM
+
+; 
+; --------------------------------------------------------------------------------
+FRMVERSION 12
+
+FORM #zRecordInfo
+  PROPERTIES
+    Name                #zRecordInfo
+    Origin              #{684671F2-1BA2-4F96-B66F-3E501D302CA1}
+  ENDPROPERTIES
+  
+  METHODS
+    SOURCE #classDeclaration
+      #// Created on 02 Мар 2017 at 10:38:22 by DEM
+      #public class FormRun extends ObjectRun
+      #{
+      #    zRecordInfo             zRecordInfo;
+      #    boolean                 filterChanged;
+      #    str                     prevSelection;
+      #    str                     dsFilter;
+      #    str                     fieldFilter;
+      #    zRecordInfoTmp          findTmp;
+      #    boolean                 groupEditMode;
+      #    Object                  sciptForm;
+      #    SysFormSplitter_X       verticalSplitter;
+      #}
+    ENDSOURCE
+    SOURCE #chkForAll
+      #boolean chkForAll()
+      #{
+      #    return chkForAll.value();
+      #}
+    ENDSOURCE
+    SOURCE #chkParent
+      #boolean chkParent()
+      #{
+      #    return chkParent.value();
+      #}
+    ENDSOURCE
+    SOURCE #commonContextMenu
+      #container commonContextMenu(int MenuHandle)
+      #{
+      #    int                 ret;
+      #    PopupMenu           m;
+      #    int                 menuItemAdd;
+      #    int                 menuItemRemove;
+      #    FormTreeItem        FormTreeItem;
+      #    str                 s;
+      #    str 250             datasourceName;
+      #    Name                name;
+      #    ;
+      #    m = PopupMenu::create(MenuHandle,this.hWnd());
+      #
+      #    if (groupEditMode)
+      #        menuItemAdd = m.insertItem("Добавить выделенные строки в набор полей");
+      #    else if (dsFilter)
+      #        menuItemRemove = m.insertItem("Удалить выделенные строки из набора полей");
+      #    else
+      #        return [1, 0];
+      #
+      #    ret = m.draw();
+      #
+      #    FormTreeItem = tree.getItem(tree.getSelection());
+      #    s = FormTreeItem.data();
+      #
+      #    if (conPeek(str2Con_RU(s, ";"), 1) == "2")
+      #    {
+      #        datasourceName = conPeek(str2Con_RU(s, ";"), 2);
+      #        name = conPeek(str2Con_RU(s, ";"), 3);
+      #
+      #        if (groupEditMode && ret == menuItemAdd)
+      #        {
+      #            zRecordInfo.addSelectedLinesToGroup(zRecordInfoTmp_ds, zRecordInfoTmp, datasourceName, name);
+      #            return   [0, 0];
+      #        }
+      #        if (dsFilter && ret == menuItemRemove)
+      #        {
+      #            zRecordInfo.removeSelectedLinesFromGroup(zRecordInfoTmp_ds, zRecordInfoTmp, datasourceName, name);
+      #            return   [0, 0];
+      #        }
+      #
+      #    }
+      #
+      #    return [0, ret];
+      #}
+    ENDSOURCE
+    SOURCE #execExpression
+      #void execExpression(str _s, zRecordInfoExpression _zRecordInfoExpression)
+      #{
+      #    ;
+      #    zRecordInfoTmp_DS.writeForAll(_s, _zRecordInfoExpression);
+      #}
+    ENDSOURCE
+    SOURCE #init
+      #public void init()
+      #{
+      #    ;
+      #    super();
+      #    if (!element.args() || !element.args().caller())
+      #        throw error("Надо вызывать из другой формы!");
+      #
+      #    verticalSplitter = new SysFormSplitter_X(vSplitter, Group3, element);
+      #
+      #    element.rereadData(false);
+      #}
+    ENDSOURCE
+    SOURCE #prevSelection
+      #str prevSelection(str _prevSelection = prevSelection)
+      #{
+      #    ;
+      #    prevSelection = _prevSelection;
+      #    return prevSelection;
+      #}
+    ENDSOURCE
+    SOURCE #rereadData
+      #void rereadData(boolean _executeQuery)
+      #{
+      #    zRecordInfoTmp      tmp;
+      #    FormRun             formRun;
+      #    FormDatasource      ds;
+      #    ;
+      #    formRun = element.args().caller();
+      #    if (zRecordInfoTmp.FormDatasourceNum)
+      #    {
+      #        ds = formRun.dataSource(zRecordInfoTmp.FormDatasourceNum);
+      #        ds.reread();
+      #        ds.refresh();
+      #    }
+      #
+      #    zRecordInfo = new zRecordInfo(element.args().caller(), this);
+      #    zRecordInfo.parmTree(tree);
+      #
+      #    tmp = zRecordInfoTmp::fillForDatasource(element.args().caller());
+      #    zRecordInfoTmp.setTmpData(tmp);
+      #
+      #    chkLabel.value(true);
+      #
+      #    zRecordInfo.buildTree(zRecordInfoTmp);
+      #    if (_executeQuery)
+      #        zRecordInfoTmp_DS.executeQuery();
+      #}
+    ENDSOURCE
+    SOURCE #run
+      #public void run()
+      #{
+      #    FormRun             formRun;
+      #    Object              formControl;
+      #    int                 dsIdx;
+      #    FormBuildDataSource formDataSource;
+      #    zRecordInfoTmp      tmp;
+      #    TableId             rootTableId;
+      #    Common              common;
+      #    DictTable           dictTable;
+      #    ;
+      #    super();
+      #    formRun = element.args().caller();
+      #    formControl = formRun.selectedControl();
+      #    if (formControl && zRecordInfo.formControlIsDataBound(formControl) && formControl.dataSource())
+      #    {
+      #        if (formControl.dataField())
+      #        {
+      #            dsIdx = formControl.dataSource();
+      #            formDataSource = formRun.form().dataSource(dsIdx);
+      #            dsIdx = formDataSource.index() + 1;
+      #            tmp.setTmpData(zRecordInfoTmp);
+      #            select firstonly tmp where
+      #                tmp.FormDatasourceName == formDataSource.name() &&
+      #                //tmp.RefFieldId == formControl.dataField();
+      #                tmp.RefFieldName == fieldId2name(formDataSource.table(), formControl.dataField());
+      #            if (!tmp.RecId)
+      #            {
+      #                dictTable = new DictTable(formDataSource.table());
+      #                common = dictTable.makeRecord();
+      #                select firstonly common where common.RecId == tmp.RefRecId;
+      #                rootTableId = SysDictTable::getConcreteTable(common);
+      #                select firstonly tmp where
+      #                    tmp.TableName == tableId2name(rootTableId) &&
+      #                    tmp.RefFieldName == fieldId2name(formDataSource.table(), formControl.dataField());
+      #                if (!tmp.RecId)
+      #                {
+      #                    select firstonly tmp where
+      #                        tmp.RefFieldId == formControl.dataField() &&
+      #                        tmp.RefFieldName == fieldId2name(formDataSource.table(), formControl.dataField());
+      #                    if (!tmp.RecId)
+      #                    {
+      #                        select firstonly tmp where
+      #                            tmp.RefFieldName == fieldId2name(formDataSource.table(), formControl.dataField());
+      #                        if (!tmp.RecId)
+      #                        {
+      #                            select firstonly tmp where tmp.FieldLabel == formControl.label();
+      #                            if (!tmp.RecId)
+      #                            {
+      #                                select firstonly tmp where
+      #                                    tmp.RefFieldId == formControl.dataField();
+      #                            }
+      #                        }
+      #                    }
+      #                }
+      #            }
+      #            if (tmp.recId)
+      #            {
+      #                zRecordInfoTmp_DS.findRecord(tmp);
+      #                zRecordInfoTmp_FieldValue.setFocus();
+      #            }
+      #            else
+      #            {
+      #                info("Фокус не был установлен на выбранное поле. Найдите поле вручную.");
+      #            }
+      #        }
+      #    }
+      #}
+    ENDSOURCE
+    SOURCE #sciptClosed
+      #void sciptClosed()
+      #{
+      #    ;
+      #    sciptForm = null;
+      #}
+    ENDSOURCE
+    SOURCE #switchCheckbox
+      #void switchCheckbox(FormCheckBoxControl _chk)
+      #{
+      #    FormCheckBoxControl chk1 = chkLabel;
+      #    FormCheckBoxControl chk2 = chkSystem;
+      #    FormCheckBoxControl chk3 = chkValue;
+      #    ;
+      #    if (!chk1.value() && !chk2.value() && !chk3.value())
+      #    {
+      #        _chk.value(true);
+      #    }
+      #    else if (_chk.value())
+      #    {
+      #        if (_chk.id() != chk1.id())
+      #            chk1.value(false);
+      #        if (_chk.id() != chk2.id())
+      #            chk2.value(false);
+      #        if (_chk.id() != chk3.id())
+      #            chk3.value(false);
+      #    }
+      #    filterChanged = true;
+      #    zRecordInfoTmp_DS.executeQuery();
+      #    StringFilter.setFocus();
+      #}
+    ENDSOURCE
+    SOURCE #zRecordInfoTmp
+      #zRecordInfoTmp zRecordInfoTmp()
+      #{
+      #    ;
+      #    return zRecordInfoTmp;
+      #}
+    ENDSOURCE
+  ENDMETHODS
+  OBJECTBANK
+    PROPERTIES
+    ENDPROPERTIES
+    
+    DATASOURCE
+      OBJECTPOOL
+        PROPERTIES
+          Name                #zRecordInfoTmp
+          Table               #zRecordInfoTmp
+          AllowCreate         #No
+          AllowDelete         #No
+        ENDPROPERTIES
+        
+        FIELDLIST
+          DATAFIELD RefFieldId
+            PROPERTIES
+              AllowEdit           #No
+            ENDPROPERTIES
+            
+            METHODS
+            ENDMETHODS
+          ENDDATAFIELD
+          
+          DATAFIELD RefTableId
+            PROPERTIES
+              AllowEdit           #No
+            ENDPROPERTIES
+            
+            METHODS
+            ENDMETHODS
+          ENDDATAFIELD
+          
+          DATAFIELD TableName
+            PROPERTIES
+              AllowEdit           #No
+            ENDPROPERTIES
+            
+            METHODS
+            ENDMETHODS
+          ENDDATAFIELD
+          
+          DATAFIELD RefFieldName
+            PROPERTIES
+              AllowEdit           #No
+            ENDPROPERTIES
+            
+            METHODS
+            ENDMETHODS
+          ENDDATAFIELD
+          
+          DATAFIELD FieldValue
+            PROPERTIES
+            ENDPROPERTIES
+            
+            METHODS
+              SOURCE #modified
+                #public void modified()
+                #{
+                #    SysDictField            sysDictField;
+                #    ;
+                #    super();
+                #    sysDictField = new SysDictField(zRecordInfoTmp.RefTableId, zRecordInfoTmp.RefFieldId);
+                #    if(SysLookup::getExtEnumId(sysDictField))
+                #    {
+                #        if (substr(zRecordInfoTmp.FieldValue, 1, 1) == "\"")
+                #            zRecordInfoTmp.FieldValue = substr(zRecordInfoTmp.FieldValue, 2, strlen(zRecordInfoTmp.FieldValue));
+                #        if (substr(zRecordInfoTmp.FieldValue, strlen(zRecordInfoTmp.FieldValue), 1) == "\"")
+                #            zRecordInfoTmp.FieldValue = substr(zRecordInfoTmp.FieldValue, 1, strlen(zRecordInfoTmp.FieldValue) - 1);
+                #    }
+                #}
+              ENDSOURCE
+              SOURCE #lookup
+                #public void lookup(FormStringControl _formControl, str _filterStr)
+                #{
+                #    ;
+                #    zRecordInfo.lookupValue(_formControl, zRecordInfoTmp.RecId, zRecordInfoTmp);
+                #}
+              ENDSOURCE
+            ENDMETHODS
+          ENDDATAFIELD
+          
+          DATAFIELD FieldLabel
+            PROPERTIES
+              AllowEdit           #No
+            ENDPROPERTIES
+            
+            METHODS
+            ENDMETHODS
+          ENDDATAFIELD
+          
+        ENDFIELDLIST
+      ENDOBJECTPOOL
+      METHODS
+        SOURCE #deleteForAll
+          #void deleteForAll()
+          #{
+          #    FormRun                 formRun;
+          #    FormDatasource          ds;
+          #    FormDatasource          dsFirst;
+          #    QueryRun                queryRun;
+          #    Common                  common;
+          #    Common                  parentCommon;
+          #    Common                  upd;
+          #    SysOperationProgress    p = new SysOperationProgress();
+          #    int                     i;
+          #    SalesTable              SalesTable;
+          #    SalesLine               SalesLine;
+          #    InventDim               InventDim;
+          #    InventTrans             InventTrans;
+          #    QueryBuildDatasource    qbds;
+          #    QueryBuildDatasource    parentQbds;
+          #    zRecordInfoTmp          tmp;
+          #    str                     parentDSName;
+          #    DictTable               dictTable;
+          #    query                   query;
+          #    ;
+          #
+          #    formRun = element.args().caller();
+          #    //zQueryPath = new zQueryPath();
+          #    //zQueryPath.run(formRun, zRecordInfoTmp);
+          #    //this.fillQueryTree();
+          #
+          #    query = zRecordInfo.fillQueryTree(zRecordInfoTmp);
+          #
+          #    queryRun = new queryRun(query);
+          #
+          #    p.setTotal(SysQuery::countTotal(queryRun));
+          #    p.update(true);
+          #
+          #    while (queryRun.next())
+          #    {
+          #        p.incCount();
+          #        p.update(true);
+          #        qbds = queryRun.query().dataSourceName(zRecordInfoTmp.FormDatasourceName);
+          #        i = qbds.id();
+          #        common = queryRun.getNo(i);
+          #
+          #        parentDSName = zRecordInfo.zQueryPath().parentDatasourceName(qbds.name());
+          #        if (parentDSName)
+          #        {
+          #            parentQbds = queryRun.query().dataSourceName(parentDSName);
+          #            i = parentQbds.id();
+          #            parentCommon = queryRun.getNo(i);
+          #        }
+          #        else
+          #            parentCommon = null;
+          #
+          #        dictTable = new DictTable(zRecordInfoTmp.RefTableId);
+          #        upd = dictTable.makeRecord();
+          #        ttsbegin;
+          #        select forupdate firstonly upd where upd.RecId == common.RecId;
+          #        if (!upd.RecId)
+          #            throw error("Запись не найдена!");
+          #        if (chkDoUpdate.value())
+          #            upd.doDelete();
+          #        else
+          #            upd.delete();
+          #        ttscommit;
+          #    }
+          #
+          #    if (zRecordInfoTmp.FormDatasourceNum)
+          #    {
+          #        //ds = formRun.dataSource(zRecordInfoTmp.FormDatasourceNum);
+          #        ds = formRun.dataSource(1);
+          #        ds.research();
+          #    }
+          #
+          #}
+        ENDSOURCE
+        SOURCE #writeForAll
+          #void writeForAll(str _expression = "", zRecordInfoExpression _zRecordInfoExpression = null)
+          #{
+          #    FormRun                 formRun;
+          #    FormDatasource          ds;
+          #    FormDatasource          dsFirst;
+          #    QueryRun                queryRun;
+          #    Common                  common;
+          #    Common                  parentCommon;
+          #    SysOperationProgress    p = new SysOperationProgress();
+          #    int                     i;
+          #    SalesTable              SalesTable;
+          #    SalesLine               SalesLine;
+          #    InventDim               InventDim;
+          #    InventTrans             InventTrans;
+          #    QueryBuildDatasource    qbds;
+          #    QueryBuildDatasource    parentQbds;
+          #    zRecordInfoTmp          tmp;
+          #    str                     parentDSName;
+          #    query                   query;
+          #    common                  curCommon;
+          #    ;
+          #    formRun = element.args().caller();
+          #    //zQueryPath = new zQueryPath();
+          #    //zQueryPath.run(formRun, zRecordInfoTmp);
+          #    //this.fillQueryTree();
+          #
+          #    curCommon.RecId = formRun.dataSource(1).cursor().RecId;
+          #
+          #    query = zRecordInfo.fillQueryTree(zRecordInfoTmp);
+          #
+          #    queryRun = new queryRun(query);
+          #
+          #    p.setTotal(SysQuery::countPrimClient(query));
+          #    p.update(true);
+          #
+          #    while (queryRun.next())
+          #    {
+          #        p.incCount();
+          #        p.update(true);
+          #        qbds = queryRun.query().dataSourceName(zRecordInfoTmp.FormDatasourceName);
+          #        i = qbds.id();
+          #        common = queryRun.getNo(i);
+          #
+          #        parentDSName = zRecordInfo.zQueryPath().parentDatasourceName(qbds.name());
+          #        if (parentDSName)
+          #        {
+          #            parentQbds = queryRun.query().dataSourceName(parentDSName);
+          #            i = parentQbds.id();
+          #            parentCommon = queryRun.getNo(i);
+          #        }
+          #        else
+          #            parentCommon = null;
+          #
+          #        if (_expression)
+          #        {
+          #            tmp = zRecordInfoTmp::fillForQueryRun(formRun, queryRun);
+          #            //_zRecordInfoExpression.execExpression(tmp, _expression, chkDoUpdate.value(), element, common, true);
+          #            _zRecordInfoExpression.execExpression(tmp, _expression, chkDoUpdate.value(), element, true);
+          #        }
+          #        else
+          #            zRecordInfoTmp.saveRecord(chkDoUpdate.value(), common.RecId, formRun, parentCommon);
+          #    }
+          #
+          #    if (zRecordInfoTmp.FormDatasourceNum && chkForAll.value())
+          #    {
+          #        //ds = formRun.dataSource(zRecordInfoTmp.FormDatasourceNum);
+          #        ds = formRun.dataSource(1);
+          #        ds.research();
+          #    }
+          #    else if (zRecordInfoTmp.FormDatasourceNum && chkParent.value())
+          #    {
+          #        ds = formRun.dataSource(zRecordInfoTmp.FormDatasourceNum);
+          #        ds.research();
+          #    }
+          #
+          #}
+        ENDSOURCE
+        SOURCE #executeQuery
+          #public void executeQuery()
+          #{
+          #    QueryBuildRange         qbr;
+          #    QueryBuildDatasource    qbds;
+          #    ;
+          #    qbds = this.query().dataSourceName(this.name());
+          #    if (filterChanged)
+          #    {
+          #        filterChanged = false;
+          #        qbds.clearRanges();
+          #        if (StringFilter.text())
+          #        {
+          #            if (chkLabel.value())
+          #            {
+          #                qbr = SysQuery::findOrCreateRange(qbds, fieldNum(zRecordInfoTmp, FieldLabel));
+          #            }
+          #            else if (chkSystem.value())
+          #            {
+          #                qbr = SysQuery::findOrCreateRange(qbds, fieldNum(zRecordInfoTmp, RefFieldName));
+          #            }
+          #            else if (chkValue.value())
+          #            {
+          #                qbr = SysQuery::findOrCreateRange(qbds, fieldNum(zRecordInfoTmp, FieldValue));
+          #            }
+          #            qbr.value("*" + StringFilter.text() + "*");
+          #        }
+          #    }
+          #    else
+          #    {
+          #        SysQuery::findOrCreateRange(this.query().dataSourceName(this.name()), fieldNum(zRecordInfoTmp, FormDatasourceName)).value(dsFilter);
+          #        SysQuery::findOrCreateRange(this.query().dataSourceName(this.name()), fieldNum(zRecordInfoTmp, RefFieldName)).value(fieldFilter);
+          #    }
+          #    super();
+          #    if (findTmp.RecId)
+          #    {
+          #        zRecordInfoTmp_DS.findRecord(findTmp);
+          #        findTmp = null;
+          #    }
+          #}
+        ENDSOURCE
+        SOURCE #write
+          #public void write()
+          #{
+          #    FormRun         formRun;
+          #    FormDatasource  ds;
+          #    Common          common;
+          #    ;
+          #    super();
+          #    formRun = element.args().caller();
+          #    if ((!chkForAll.value() && !chkParent.value()) || !zRecordInfoTmp.FormDatasourceNum)
+          #    {
+          #        zRecordInfoTmp.saveRecord(chkDoUpdate.value(), zRecordInfoTmp.RefRecId, formRun, null);
+          #
+          #        if (zRecordInfoTmp.FormDatasourceNum)
+          #        {
+          #            ds = formRun.dataSource(zRecordInfoTmp.FormDatasourceNum);
+          #            ds.reread();
+          #            ds.refresh();
+          #        }
+          #    }
+          #    else
+          #    {
+          #        this.writeForAll();
+          #    }
+          #}
+        ENDSOURCE
+        SOURCE #init
+          #public void init()
+          #{
+          #    super();
+          #    this.query().dataSourceName(this.name()).addSortField(fieldNum(zRecordInfoTmp,  TableName));
+          #    this.query().dataSourceName(this.name()).addSortField(fieldNum(zRecordInfoTmp, FieldLabel));
+          #}
+        ENDSOURCE
+        SOURCE #active
+          #public int active()
+          #{
+          #    int ret;
+          #    FormLookupButton        FormLookupButton;
+          #    DictField               DictField;
+          #    queryRun                queryRun;
+          #    query                   query;
+          #    FormRun                 callerFormRun;
+          #    FormBuildDatasource     formDataSource;
+          #    int                     dsNum = 1;
+          #    str 200                 s;
+          #    zRecordInfoTmp          tmp;
+          #    ;
+          #    ret = super();
+          #
+          #    callerFormRun = element.args().caller();
+          #
+          #    FormLookupButton = zRecordInfo::lookupValidate(RangeStatus::Open, zRecordInfoTmp.RefTableId, zRecordInfoTmp.RefFieldId);
+          #    zRecordInfoTmp_FieldValue.lookupButton(FormLookupButton);
+          #    DictField = new DictField(zRecordInfoTmp.RefTableId, zRecordInfoTmp.RefFieldId);
+          #    zRecordInfoTmp_FieldValue.allowEdit(!DictField.isSystem());
+          #    //if (zRecordInfoTmp.RefTableId == tableNum(InventDim) && zRecordInfoTmp_FieldValue.allowEdit())
+          #    //   zRecordInfoTmp_FieldValue.allowEdit(false); //блокируем случайное изменение складских аналитик в справочнике!
+          #
+          #    //zQueryPath = new zQueryPath();
+          #    //zQueryPath.run(element.args().caller(), zRecordInfoTmp);
+          #    //this.fillQueryTree();
+          #
+          #    query = zRecordInfo.fillQueryTree(zRecordInfoTmp);
+          #
+          #    queryRun = new queryRun(query);
+          #
+          #    tmp.data(zRecordInfoTmp);
+          #    if (zRecordInfoTmp.FormDatasourceNum && zRecordInfoTmp.FormDatasourceName)
+          #    {
+          #        formDataSource = callerFormRun.form().dataSource(zRecordInfoTmp.FormDatasourceNum);
+          #        s = zRecordInfo.zQueryPath().parentDatasourceName(formDataSource.name());
+          #        if (s)
+          #        {
+          #            tmp.setTmpData(zRecordInfoTmp);
+          #            select firstonly tmp where tmp.FormDatasourceName == s;
+          #            if (tmp.RecId)
+          #                formDataSource = callerFormRun.form().dataSource(tmp.FormDatasourceNum);
+          #            else
+          #                formDataSource = null;
+          #        }
+          #    }
+          #    if (formDataSource && formDataSource.linkType() <= 2)
+          #        dsNum = tmp.FormDatasourceNum;
+          #    if (dsNum <= queryRun.query().dataSourceCount())
+          #        strQuery.text(queryRun.query().dataSourceNo(dsNum).toString());
+          #
+          #    return ret;
+          #}
+        ENDSOURCE
+      ENDMETHODS
+    ENDDATASOURCE
+  ENDOBJECTBANK
+  
+  REFERENCEDATASOURCES
+  ENDREFERENCEDATASOURCES
+  
+  JOINS
+  ENDJOINS
+  
+  PARTREFERENCES
+  ENDPARTREFERENCES
+  
+  DESIGN
+    PROPERTIES
+      Caption             #Мультипаспорт записи
+      Columns             #3
+      ArrangeGuide        
+        ARRAY INDEX Columns 
+          #0
+          #0
+          #0
+        ENDARRAY
+    ENDPROPERTIES
+    
+    CONTAINER
+      CONTROL BUTTONGROUP
+        PROPERTIES
+          Name                #ButtonGroup
+          Left                #Auto (left)
+          Top                 #Top edge
+          ElementPosition     #1073741822
+          HierarchyParent     #Group3
+          Columns             #4
+          ArrangeGuide        
+            ARRAY INDEX Columns 
+              #0
+              #0
+              #0
+              #0
+            ENDARRAY
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL BUTTONGROUP
+        PROPERTIES
+          Name                #ButtonGroup1
+          ElementPosition     #1840700268
+          HierarchyParent     #Group4
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GRID
+        PROPERTIES
+          Name                #Grid
+          Width               #Column width
+          Height              #Column height
+          ElementPosition     #1227133512
+          HierarchyParent     #Group4
+          DataSource          #zRecordInfoTmp
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Group
+          ElementPosition     #613566756
+          HierarchyParent     #Group4
+          FrameType           #None
+          Columns             #4
+          ArrangeGuide        
+            ARRAY INDEX Columns 
+              #0
+              #0
+              #0
+              #0
+            ENDARRAY
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Group1
+          ElementPosition     #920350134
+          HierarchyParent     #Group4
+          FrameType           #None
+          Columns             #3
+          ArrangeGuide        
+            ARRAY INDEX Columns 
+              #0
+              #0
+              #0
+            ENDARRAY
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Group2
+          Top                 #Bottom edge
+          Width               #Column width
+          Height              #80
+          ElementPosition     #1533916890
+          HierarchyParent     #Group4
+          FrameType           #None
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Group3
+          AutoDeclaration     #Yes
+          Left                #Left edge
+          Width               #Column width
+          Height              #Column height
+          ElementPosition     #477218588
+          Caption             #Наборы полей
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Group4
+          Width               #Column width
+          Height              #Column height
+          ElementPosition     #1431655764
+          FrameType           #None
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #VSplitter
+          AutoDeclaration     #Yes
+          Width               #2
+          Height              #Column height
+          ElementPosition     #954437176
+          FrameType           #Raised 3D
+          Style               #SplitterVerticalContainer
+          HideIfEmpty         #No
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL BUTTON
+        PROPERTIES
+          Name                #btnDelete
+          ElementPosition     #1431655764
+          HierarchyParent     #ButtonGroup1
+          Text                #Удалить
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #clicked
+            #void clicked()
+            #{
+            #    FormRun         formRun;
+            #    FormDatasource  ds;
+            #    Common          common;
+            #    DictTable       dictTable;
+            #    ;
+            #    if (zRecordInfoTmp.RefTableId == tableNum(InventDim))
+            #        throw error(strfmt("Нельзя удалять записи из таблицы %1!", tableId2Name(tableNum(InventDim))));
+            #
+            #    if ((!chkForAll.value() && !chkParent.value()) || !zRecordInfoTmp.FormDatasourceNum)
+            #    {
+            #        if (Box::yesNo("Удалить одну запись из таблицы " + zRecordInfoTmp.TableName + " ?", DialogButton::Yes)
+            #            == DialogButton::No)
+            #        {
+            #            return;
+            #        }
+            #        formRun = element.args().caller();
+            #        if ((!chkForAll.value() && !chkParent.value()) || !zRecordInfoTmp.FormDatasourceNum)
+            #        {
+            #            dictTable = new DictTable(zRecordInfoTmp.RefTableId);
+            #            common = dictTable.makeRecord();
+            #            ttsbegin;
+            #            select forupdate firstonly common where common.RecId == zRecordInfoTmp.RefRecId;
+            #            if (!common.RecId)
+            #                throw error("Запись не найдена!");
+            #            if (chkDoUpdate.value())
+            #                common.doDelete();
+            #            else
+            #                common.delete();
+            #            ttscommit;
+            #
+            #            if (zRecordInfoTmp.FormDatasourceNum)
+            #            {
+            #                ds = formRun.dataSource(zRecordInfoTmp.FormDatasourceNum);
+            #                ds.research();
+            #            }
+            #            element.close();
+            #        }
+            #    }
+            #    else
+            #    {
+            #        if (Box::yesNo("Удалить записи из таблицы " + zRecordInfoTmp.TableName + " ?", DialogButton::Yes)
+            #            == DialogButton::No)
+            #        {
+            #            return;
+            #        }
+            #        zRecordInfoTmp_DS.deleteForAll();
+            #        element.close();
+            #    }
+            #}
+            #
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL BUTTON
+        PROPERTIES
+          Name                #btnNewFields
+          AutoDeclaration     #Yes
+          Enabled             #No
+          HelpText            #Добавить поля в выбранный набор
+          ElementPosition     #1789569705
+          HierarchyParent     #ButtonGroup
+          ButtonDisplay       #Image only
+          NormalImage         #824
+          ImageLocation       #EmbeddedResource
+          BackStyle           #Transparent
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #clicked
+            #void clicked()
+            #{
+            #    ;
+            #    tree.addFields();
+            #}
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL BUTTON
+        PROPERTIES
+          Name                #btnNewGroup
+          AutoDeclaration     #Yes
+          HelpText            #Добавить набор полей для выбранного источника данных
+          ElementPosition     #715827882
+          HierarchyParent     #ButtonGroup
+          ButtonDisplay       #Image only
+          NormalImage         #809
+          ImageLocation       #EmbeddedResource
+          BackStyle           #Transparent
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #clicked
+            #void clicked()
+            #{
+            #    FormTreeItem            FormTreeItem;
+            #    str 250                 datasourceName;
+            #    str                     s;
+            #    ;
+            #    FormTreeItem = tree.getItem(tree.getSelection());
+            #    s = FormTreeItem.data();
+            #    datasourceName = conPeek(str2Con_RU(s, ";"), 2);
+            #    tree.newGroup(FormTreeItem, datasourceName);
+            #}
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL BUTTON
+        PROPERTIES
+          Name                #btnRemoveGroup
+          AutoDeclaration     #Yes
+          Enabled             #No
+          HelpText            #Удалить выбранный набор полей
+          ElementPosition     #1431655764
+          HierarchyParent     #ButtonGroup
+          ButtonDisplay       #Image only
+          NormalImage         #1020
+          ImageLocation       #EmbeddedResource
+          BackStyle           #Transparent
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #clicked
+            #void clicked()
+            #{
+            #    FormTreeItem            FormTreeItem;
+            #    str 250                 datasourceName;
+            #    str                     s;
+            #    Name                    name;
+            #    ;
+            #    FormTreeItem = tree.getItem(tree.getSelection());
+            #    s = FormTreeItem.data();
+            #    datasourceName = conPeek(str2Con_RU(s, ";"), 2);
+            #    name = conPeek(str2Con_RU(s, ";"), 3);
+            #    tree.removeGroup(FormTreeItem, datasourceName, name);
+            #}
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL BUTTON
+        PROPERTIES
+          Name                #btnRenameGroup
+          AutoDeclaration     #Yes
+          Enabled             #No
+          HelpText            #Переименовать выбранный набор полей
+          ElementPosition     #1073741823
+          HierarchyParent     #ButtonGroup
+          ButtonDisplay       #Image only
+          NormalImage         #808
+          ImageLocation       #EmbeddedResource
+          BackStyle           #Transparent
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #clicked
+            #void clicked()
+            #{
+            #    FormTreeItem            FormTreeItem;
+            #    str 250                 datasourceName;
+            #    str                     s;
+            #    Name                    name;
+            #    ;
+            #    FormTreeItem = tree.getItem(tree.getSelection());
+            #    s = FormTreeItem.data();
+            #    datasourceName = conPeek(str2Con_RU(s, ";"), 2);
+            #    name = conPeek(str2Con_RU(s, ";"), 3);
+            #    tree.renameGroup(FormTreeItem, datasourceName, name);
+            #}
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL BUTTON
+        PROPERTIES
+          Name                #execScript
+          ElementPosition     #1908874352
+          HierarchyParent     #ButtonGroup1
+          Text                #Скрипт
+          MultiSelect         #Yes
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #clicked
+            # void clicked()
+            #{
+            #    Args    args=new Args();
+            #    zRecordInfoTmp          tmp;
+            #    zRecordInfoTemplate     zRecordInfoTemplate;
+            #    zRecordInfoTemplateLine zRecordInfoTemplateLine;
+            #    int                     selCount;
+            #    ;
+            #    super();
+            #    if (!sciptForm)
+            #    {
+            #        args.name(formstr(zRecordInfoScript));
+            #        sciptForm = ClassFactory.formRunClass(args);
+            #        args.record(zRecordInfoTmp);
+            #        args.caller(element);
+            #        if (chkDoUpdate.value())
+            #            args.parm("doUpdate");
+            #        sciptForm.init();
+            #        sciptForm.run();
+            #        sciptForm.detach();
+            #    }
+            #
+            #    for (tmp = zRecordInfoTmp_ds.getFirst(1) ?  // есть ли помеченные записи -
+            #                    zRecordInfoTmp_ds.getFirst(1) :  // если есть, взять первую
+            #                    zRecordInfoTmp;                  // иначе взять текущую
+            #                    tmp;                              // продолжать до тех пор, пока есть записи для обработки
+            #                    tmp = zRecordInfoTmp_ds.getNext())     // взять потенциальную следующую запись
+            #    {
+            #        selCount++;
+            #        if (selCount > 1)
+            #            break;
+            #    }
+            #
+            #    for (tmp = zRecordInfoTmp_ds.getFirst(1) ?  // есть ли помеченные записи -
+            #                    zRecordInfoTmp_ds.getFirst(1) :  // если есть, взять первую
+            #                    zRecordInfoTmp;                  // иначе взять текущую
+            #                    tmp;                              // продолжать до тех пор, пока есть записи для обработки
+            #                    tmp = zRecordInfoTmp_ds.getNext())     // взять потенциальную следующую запись
+            #    {
+            #        if (selCount > 1)
+            #            sciptForm.addToScript(tmp, false);
+            #        else
+            #            sciptForm.addToScript(tmp, true);
+            #    }
+            #}
+            #
+            #
+            #
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL CHECKBOX
+        PROPERTIES
+          Name                #chkDoUpdate
+          AutoDeclaration     #Yes
+          ElementPosition     #858993458
+          HierarchyParent     #Group1
+          Label               #Игнорировать update
+          LabelAlignment      #Right
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL CHECKBOX
+        PROPERTIES
+          Name                #chkForAll
+          AutoDeclaration     #Yes
+          ElementPosition     #1717986916
+          HierarchyParent     #Group1
+          Label               #Выполнить для всех записей, отображаемых на форме
+          LabelAlignment      #Right
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #modified
+            #public boolean modified()
+            #{
+            #    boolean ret;
+            #
+            #    ret = super();
+            #    if (this.value())
+            #        chkParent.value(false);
+            #    zRecordInfoTmp_DS.active();
+            #
+            #    return ret;
+            #}
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL CHECKBOX
+        PROPERTIES
+          Name                #chkLabel
+          AutoDeclaration     #Yes
+          ElementPosition     #1073741823
+          HierarchyParent     #Group
+          Label               #По метке
+          LabelAlignment      #Right
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #modified
+            #public boolean modified()
+            #{
+            #    boolean ret;
+            #
+            #    ret = super();
+            #    element.switchCheckbox(this);
+            #
+            #    return ret;
+            #}
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL CHECKBOX
+        PROPERTIES
+          Name                #chkParent
+          AutoDeclaration     #Yes
+          ElementPosition     #1288490187
+          HierarchyParent     #Group1
+          Label               #Выполнить для всех записей текущего родителя
+          LabelAlignment      #Right
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #modified
+            #public boolean modified()
+            #{
+            #    boolean ret;
+            #
+            #    ret = super();
+            #    if (this.value())
+            #        chkForAll.value(false);
+            #    zRecordInfoTmp_DS.active();
+            #
+            #    return ret;
+            #}
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL CHECKBOX
+        PROPERTIES
+          Name                #chkSystem
+          AutoDeclaration     #Yes
+          ElementPosition     #1431655764
+          HierarchyParent     #Group
+          Label               #По систеному имени
+          LabelAlignment      #Right
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #modified
+            #public boolean modified()
+            #{
+            #    boolean ret;
+            #
+            #    ret = super();
+            #    element.switchCheckbox(this);
+            #
+            #    return ret;
+            #}
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL CHECKBOX
+        PROPERTIES
+          Name                #chkValue
+          AutoDeclaration     #Yes
+          ElementPosition     #1789569705
+          HierarchyParent     #Group
+          Label               #По значению
+          LabelAlignment      #Right
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #modified
+            #public boolean modified()
+            #{
+            #    boolean ret;
+            #
+            #    ret = super();
+            #    element.switchCheckbox(this);
+            #
+            #    return ret;
+            #}
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL SEPARATOR
+        PROPERTIES
+          Name                #Separator
+          ElementPosition     #1670265058
+          HierarchyParent     #ButtonGroup1
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STRINGEDIT
+        PROPERTIES
+          Name                #StringFilter
+          AutoDeclaration     #Yes
+          ElementPosition     #715827882
+          HierarchyParent     #Group
+          Label               #Поиск поля
+          LabelAlignment      #Right
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #enter
+            #public void enter()
+            #{
+            #    //super();
+            #}
+          ENDSOURCE
+          SOURCE #textChange
+            #public void textChange()
+            #{
+            #    super();
+            #    filterChanged = true;
+            #    zRecordInfoTmp_DS.executeQuery();
+            #}
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STRINGEDIT
+        PROPERTIES
+          Name                #strQuery
+          AutoDeclaration     #Yes
+          AllowEdit           #No
+          Left                #Left edge
+          Width               #Column width
+          Height              #Column height
+          ElementPosition     #1431655764
+          HierarchyParent     #Group2
+          MultiLine           #Yes
+          Label               #Запрос для получения данных из текущего источника (на котором стоит курсор)
+          LabelPosition       #Above
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STRINGEDIT
+        PROPERTIES
+          Name                #zRecordInfoTmp_FieldLabel
+          ElementPosition     #1431655764
+          HierarchyParent     #Grid
+          LabelAlignment      #Right
+          DataSource          #zRecordInfoTmp
+          DataField           #FieldLabel
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #showContextMenu
+            #public int showContextMenu(int _menuHandle)
+            #{
+            #    int ret;
+            #    int need2CallSuper;
+            #    ;
+            #    [need2CallSuper, ret] = element.commonContextMenu(_menuHandle);
+            #    if (need2CallSuper)
+            #        ret = super(_menuHandle);
+            #
+            #    return ret;
+            #}
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STRINGEDIT
+        PROPERTIES
+          Name                #zRecordInfoTmp_FieldValue
+          AutoDeclaration     #Yes
+          ElementPosition     #1789569705
+          HierarchyParent     #Grid
+          DisplayLength       #30
+          LabelAlignment      #Right
+          DataSource          #zRecordInfoTmp
+          DataField           #FieldValue
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #showContextMenu
+            #public int showContextMenu(int _menuHandle)
+            #{
+            #    int ret;
+            #    int need2CallSuper;
+            #    ;
+            #    [need2CallSuper, ret] = element.commonContextMenu(_menuHandle);
+            #    if (need2CallSuper)
+            #        ret = super(_menuHandle);
+            #
+            #    return ret;
+            #}
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STRINGEDIT
+        PROPERTIES
+          Name                #zRecordInfoTmp_RefFieldName
+          ElementPosition     #1073741823
+          HierarchyParent     #Grid
+          LabelAlignment      #Right
+          DataSource          #zRecordInfoTmp
+          DataField           #RefFieldName
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #showContextMenu
+            #public int showContextMenu(int _menuHandle)
+            #{
+            #    int ret;
+            #    int need2CallSuper;
+            #    ;
+            #    [need2CallSuper, ret] = element.commonContextMenu(_menuHandle);
+            #    if (need2CallSuper)
+            #        ret = super(_menuHandle);
+            #
+            #    return ret;
+            #}
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STRINGEDIT
+        PROPERTIES
+          Name                #zRecordInfoTmp_TableName
+          ElementPosition     #715827882
+          HierarchyParent     #Grid
+          DisplayLength       #40
+          LabelAlignment      #Right
+          DataSource          #zRecordInfoTmp
+          DataField           #TableName
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #showContextMenu
+            #public int showContextMenu(int _menuHandle)
+            #{
+            #    int ret;
+            #    int need2CallSuper;
+            #    ;
+            #    [need2CallSuper, ret] = element.commonContextMenu(_menuHandle);
+            #    if (need2CallSuper)
+            #        ret = super(_menuHandle);
+            #
+            #    return ret;
+            #}
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TREE
+        PROPERTIES
+          Name                #Tree
+          Width               #Column width
+          Height              #Column height
+          ElementPosition     #1610612733
+          HierarchyParent     #Group3
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #addFields
+            #void addFields()
+            #{
+            #    ;
+            #    if (dsFilter || fieldFilter)
+            #    {
+            #        dsFilter = "";
+            #        fieldFilter = "";
+            #        zRecordInfoTmp_DS.executeQuery();
+            #    }
+            #    groupEditMode = true;
+            #    Box::info("Выбирайте в таблице справа строки с нужными полями, потом нажмите правую кнопку мыши и выполните команду \"Добавить выделенные строки в набор полей\"");
+            #}
+          ENDSOURCE
+          SOURCE #context
+            #public void context()
+            #{
+            #    PopupMenu               menu ;
+            #    Str                     filterValue;
+            #    int                     selectedItem;
+            #    int                     addFields;
+            #    int                     newGroup;
+            #    int                     renameGroup;
+            #    int                     removeGroup;
+            #    FormTreeItem            FormTreeItem;
+            #    str                     s;
+            #    Dialog                  d;
+            #    DialogField             df;
+            #    str 250                 datasourceName;
+            #    Name                    name;
+            #    ;
+            #
+            #    //super(); // Comment standard menu
+            #
+            #    menu = new PopupMenu(element.hWnd());
+            #
+            #    FormTreeItem = tree.getItem(tree.getSelection());
+            #    s = FormTreeItem.data();
+            #
+            #    if (conPeek(str2Con_RU(s, ";"), 1) == "1")
+            #        newGroup = menu.insertItem("Создать набор полей");
+            #    else if (conPeek(str2Con_RU(s, ";"), 1) == "2")
+            #    {
+            #        addFields = menu.insertItem("Добавить поля в набор");
+            #        menu.insertBreak();
+            #        renameGroup = menu.insertItem("Переименовать набор полей");
+            #        removeGroup= menu.insertItem("Удалить набор полей");
+            #        name = conPeek(str2Con_RU(s, ";"), 3);
+            #    }
+            #    datasourceName = conPeek(str2Con_RU(s, ";"), 2);
+            #
+            #    selectedItem = menu.draw();
+            #
+            #    switch (selectedItem)
+            #    {
+            #        case addFields:
+            #            this.addFields();
+            #        break;
+            #
+            #        case newGroup:
+            #            this.newGroup(FormTreeItem, datasourceName);
+            #        break;
+            #
+            #        case renameGroup:
+            #            this.renameGroup(FormTreeItem, datasourceName, name);
+            #        break;
+            #
+            #        case removeGroup:
+            #            this.removeGroup(FormTreeItem, datasourceName, name);
+            #        break;
+            #    }
+            #}
+          ENDSOURCE
+          SOURCE #mouseDown
+            #public int mouseDown(int _x, int _y, int _button, boolean _Ctrl, boolean _Shift)
+            #{
+            #    int ret;
+            #
+            #    ret = super(_x, _y, _button, _Ctrl, _Shift);
+            #    if (groupEditMode)
+            #        tree.selectionChanged(tree.getItem(tree.getSelection()), tree.getItem(tree.getSelection()), FormTreeSelect::ByMouse);
+            #
+            #    return ret;
+            #}
+          ENDSOURCE
+          SOURCE #newGroup
+            #void newGroup(FormTreeItem _formTreeItem, str 250 _datasourceName)
+            #{
+            #    zRecordInfoTemplate     zRecordInfoTemplate;
+            #    Dialog                  d = new Dialog("Создание набора полей", element);
+            #    DialogField             df = d.addField(extendedtypestr(Name));
+            #    FormTreeItem            FormTreeItem;
+            #    ;
+            #    if (!d.run())
+            #        return;
+            #    if (!df.value())
+            #        throw error("Название набора должно быть указано!");
+            #
+            #    zRecordInfoTemplate.clear();
+            #    zRecordInfoTemplate.DatasourceName = _datasourceName;
+            #    zRecordInfoTemplate.Name = df.value();
+            #    zRecordInfoTemplate.insert();
+            #
+            #    FormTreeItem = new FormTreeItem(zRecordInfoTemplate.Name, 6, 0, strfmt("2;%1;%2", _datasourceName, zRecordInfoTemplate.Name));
+            #    tree.addItem(_formTreeItem.idx(), 0, FormTreeItem);
+            #
+            #    _formTreeItem.children(1);
+            #    tree.setItem(_formTreeItem);
+            #    tree.expand(_formTreeItem.idx(), FormTreeExpand::EXPAND);
+            #    tree.update();
+            #}
+          ENDSOURCE
+          SOURCE #removeGroup
+            #void removeGroup(FormTreeItem _formTreeItem, str 250 _datasourceName, Name _name )
+            #{
+            #    zRecordInfoTemplate     zRecordInfoTemplate;
+            #    FormTreeItem            parentFormTreeItem;
+            #    ;
+            #    if (Box::yesNo(strfmt("Удалить набор полей %1 ?", _name), DialogButton::No) == DialogButton::No)
+            #        return;
+            #
+            #    ttsbegin;
+            #    select forupdate firstonly zRecordInfoTemplate where
+            #        zRecordInfoTemplate.DatasourceName == _datasourceName &&
+            #        zRecordInfoTemplate.Name == _name;
+            #    if (!zRecordInfoTemplate.RecId)
+            #        throw error("Набор не найден!");
+            #    zRecordInfoTemplate.delete();
+            #    ttscommit;
+            #
+            #    parentFormTreeItem = tree.getItem(tree.getParent(_formTreeItem.idx()));
+            #    tree.delete(_formTreeItem.idx());
+            #
+            #    zRecordInfoTemplate = null;
+            #    select firstonly zRecordInfoTemplate where
+            #        zRecordInfoTemplate.DatasourceName == _datasourceName;
+            #    if (!zRecordInfoTemplate.RecId && parentFormTreeItem && parentFormTreeItem.children())
+            #    {
+            #        parentFormTreeItem.children(0);
+            #        tree.setItem(parentFormTreeItem);
+            #    }
+            #    tree.update();
+            #
+            #}
+          ENDSOURCE
+          SOURCE #renameGroup
+            #void renameGroup(FormTreeItem _formTreeItem, str 250 _datasourceName, Name _name )
+            #{
+            #    zRecordInfoTemplate     zRecordInfoTemplate;
+            #    Dialog                  d = new Dialog("Переименование набора полей", element);
+            #    DialogField             df = d.addFieldValue(extendedtypestr(Name), _name);
+            #    ;
+            #    if (!d.run())
+            #        return;
+            #    if (!df.value())
+            #        throw error("Название набора должно быть указано!");
+            #    ttsbegin;
+            #    select forupdate firstonly zRecordInfoTemplate where
+            #        zRecordInfoTemplate.DatasourceName == _datasourceName &&
+            #        zRecordInfoTemplate.Name == _name;
+            #    if (!zRecordInfoTemplate.RecId)
+            #        throw error("Набор не найден!");
+            #    zRecordInfoTemplate.Name = df.value();
+            #    zRecordInfoTemplate.update();
+            #    ttscommit;
+            #
+            #    _formTreeItem.data(strfmt("2;%1;%2", _datasourceName, zRecordInfoTemplate.Name));
+            #    _formTreeItem.text(zRecordInfoTemplate.Name);
+            #
+            #    tree.setItem(_formTreeItem);
+            #}
+          ENDSOURCE
+          SOURCE #selectionChanged
+            #public void selectionChanged(FormTreeItem _OldItem, FormTreeItem _NewItem, FormTreeSelect _how)
+            #{
+            #    Container               con;
+            #    zRecordInfoTmp          tmp;
+            #    str 250                 dsName;
+            #    Name                    name;
+            #    zRecordInfoTemplate     zRecordInfoTemplate;
+            #    zRecordInfoTemplateLine zRecordInfoTemplateLine;
+            #    boolean                 needToExecQuery;
+            #    ;
+            #    super(_OldItem, _NewItem, _how);
+            #
+            #    if (groupEditMode || (prevSelection && prevSelection != _NewItem.data()))
+            #    {
+            #        if (dsFilter || fieldFilter)
+            #            needToExecQuery = true;
+            #        dsFilter = "";
+            #        fieldFilter = "";
+            #        StringFilter.text("");
+            #
+            #        tmp.setTmpData(zRecordInfoTmp);
+            #        con = str2Con_RU(_NewItem.data(), ";");
+            #        if (conPeek(con, 1) == "1")
+            #        {
+            #            btnNewGroup.enabled(true);
+            #            btnRenameGroup.enabled(false);
+            #            btnRemoveGroup.enabled(false);
+            #            btnNewFields.enabled(false);
+            #
+            #            dsName = conPeek(con, 2);
+            #            select firstonly tmp order by FieldLabel
+            #                where tmp.FormDatasourceName == dsName;
+            #            if (tmp.RecId)
+            #                findTmp = tmp;
+            #        }
+            #        else if (conPeek(con, 1) == "2")
+            #        {
+            #            btnNewGroup.enabled(false);
+            #            btnRenameGroup.enabled(true);
+            #            btnRemoveGroup.enabled(true);
+            #            btnNewFields.enabled(true);
+            #
+            #            dsName = conPeek(con, 2);
+            #            name = conPeek(con, 3);
+            #            while select zRecordInfoTemplateLine
+            #                join zRecordInfoTemplate where
+            #                zRecordInfoTemplate.RecId == zRecordInfoTemplateLine.RefzRecordInfoTemplateRecId &&
+            #                zRecordInfoTemplate.DatasourceName == dsName &&
+            #                zRecordInfoTemplate.Name == name
+            #            {
+            #                select firstonly tmp
+            #                    where tmp.FormDatasourceName == zRecordInfoTemplateLine.DatasourceName &&
+            #                    tmp.RefFieldName == zRecordInfoTemplateLine.RefFieldName;
+            #                if (tmp.RecId)
+            #                {
+            #                    needToExecQuery = true;
+            #                    groupEditMode = false;
+            #                    if (dsFilter)
+            #                        dsFilter += ",";
+            #                    dsFilter += tmp.FormDatasourceName;
+            #                    if (fieldFilter)
+            #                        fieldFilter += ",";
+            #                    fieldFilter += tmp.RefFieldName;
+            #                }
+            #            }
+            #        }
+            #        if (needToExecQuery)
+            #            zRecordInfoTmp_DS.executeQuery();
+            #        else if (findTmp.RecId)
+            #            zRecordInfoTmp_DS.findRecord(findTmp);
+            #    }
+            #
+            #
+            #    prevSelection = _NewItem.data();
+            #}
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+    ENDCONTAINER
+    
+  ENDDESIGN
+  
+  PERMISSIONS #Permissions
+    PROPERTIES
+    ENDPROPERTIES
+    
+    PERMISSIONSET #Read
+      PROPERTIES
+      ENDPROPERTIES
+      
+      FORM #Controls
+      ENDFORM
+      
+    TABLES #Tables
+    ENDTABLES
+    
+  SERVERMETHODS #Server Methods
+  ENDSERVERMETHODS
+  
+ASSOCIATEDFORMS #Associated Forms
+ENDASSOCIATEDFORMS
+
+ENDPERMISSIONSET
+
+PERMISSIONSET #Update
+  PROPERTIES
+  ENDPROPERTIES
+  
+  FORM #Controls
+  ENDFORM
+  
+TABLES #Tables
+ENDTABLES
+
+SERVERMETHODS #Server Methods
+ENDSERVERMETHODS
+
+ASSOCIATEDFORMS #Associated Forms
+ENDASSOCIATEDFORMS
+
+ENDPERMISSIONSET
+
+PERMISSIONSET #Create
+  PROPERTIES
+  ENDPROPERTIES
+  
+  FORM #Controls
+  ENDFORM
+  
+TABLES #Tables
+ENDTABLES
+
+SERVERMETHODS #Server Methods
+ENDSERVERMETHODS
+
+ASSOCIATEDFORMS #Associated Forms
+ENDASSOCIATEDFORMS
+
+ENDPERMISSIONSET
+
+PERMISSIONSET #Delete
+  PROPERTIES
+  ENDPROPERTIES
+  
+  FORM #Controls
+  ENDFORM
+  
+TABLES #Tables
+ENDTABLES
+
+SERVERMETHODS #Server Methods
+ENDSERVERMETHODS
+
+ASSOCIATEDFORMS #Associated Forms
+ENDASSOCIATEDFORMS
+
+ENDPERMISSIONSET
+
+ENDPERMISSIONS
+
+ENDFORM
+
+
+***Element: END

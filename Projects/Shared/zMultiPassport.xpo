@@ -1,0 +1,155 @@
+﻿Exportfile for AOT version 1.0 or later
+Formatversion: 1
+
+***Element: PRN
+
+; 
+; --------------------------------------------------------------------------------
+  PROJECTVERSION 2
+  
+  PROJECT #zMultiPassport
+  SHARED
+  PROPERTIES
+    Name                #zMultiPassport
+    Origin              #{E98C2B80-B05F-4096-93FA-88E00228797E}
+  ENDPROPERTIES
+  
+    PROJECTCLASS ProjectNode
+    GROUP #SecurityPrivileges
+      PROPERTIES
+        Name                #SecurityPrivileges
+        ProjectGroupType    #SecurityPrivileges
+        GroupMask           #
+        PreventEditProperties #No
+      ENDPROPERTIES
+      
+      BEGINNODE
+        FILETYPE 0
+        UTILTYPE 134
+        NODETYPE 1628
+        NAME #zMultiPassport
+      ENDNODE
+      ENDGROUP
+      
+    GROUP #ExtendedDataTypes
+      PROPERTIES
+        Name                #ExtendedDataTypes
+        ProjectGroupType    #ExtendedDataTypes
+        GroupMask           #
+        PreventEditProperties #No
+      ENDPROPERTIES
+      
+      BEGINNODE
+        FILETYPE 0
+        UTILTYPE 41
+        NODETYPE 234
+        NAME #zRecordInfoScriptName
+      ENDNODE
+      ENDGROUP
+      
+    GROUP #Classes
+      PROPERTIES
+        Name                #Classes
+        ProjectGroupType    #Classes
+        GroupMask           #
+        PreventEditProperties #No
+      ENDPROPERTIES
+      
+      BEGINNODE
+        FILETYPE 0
+        UTILTYPE 45
+        NODETYPE 329
+        NAME #SysQuery
+      ENDNODE
+      BEGINNODE
+        FILETYPE 0
+        UTILTYPE 45
+        NODETYPE 329
+        NAME #zRecordInfoExpression
+      ENDNODE
+      BEGINNODE
+        FILETYPE 0
+        UTILTYPE 45
+        NODETYPE 329
+        NAME #zRecordInfo
+      ENDNODE
+      BEGINNODE
+        FILETYPE 0
+        UTILTYPE 45
+        NODETYPE 329
+        NAME #zQueryPath
+      ENDNODE
+      BEGINNODE
+        FILETYPE 0
+        UTILTYPE 45
+        NODETYPE 329
+        NAME #SysSetupFormRun
+      ENDNODE
+      ENDGROUP
+      
+    GROUP #Forms
+      PROPERTIES
+        Name                #Forms
+        ProjectGroupType    #Forms
+        GroupMask           #
+        PreventEditProperties #No
+      ENDPROPERTIES
+      
+      BEGINNODE
+        FILETYPE 0
+        UTILTYPE 11
+        NODETYPE 201
+        NAME #zRecordInfoScript
+      ENDNODE
+      BEGINNODE
+        FILETYPE 0
+        UTILTYPE 11
+        NODETYPE 201
+        NAME #zSysLookup
+      ENDNODE
+      BEGINNODE
+        FILETYPE 0
+        UTILTYPE 11
+        NODETYPE 201
+        NAME #zRecordInfo
+      ENDNODE
+      ENDGROUP
+      
+    GROUP #Tables
+      PROPERTIES
+        Name                #Tables
+        ProjectGroupType    #Tables
+        GroupMask           #
+        PreventEditProperties #No
+      ENDPROPERTIES
+      
+      BEGINNODE
+        FILETYPE 0
+        UTILTYPE 44
+        NODETYPE 204
+        NAME #zRecordInfoTemplate
+      ENDNODE
+      BEGINNODE
+        FILETYPE 0
+        UTILTYPE 44
+        NODETYPE 204
+        NAME #zRecordInfoTemplateLine
+      ENDNODE
+      BEGINNODE
+        FILETYPE 0
+        UTILTYPE 44
+        NODETYPE 204
+        NAME #zRecordInfoTmp
+      ENDNODE
+      BEGINNODE
+        FILETYPE 0
+        UTILTYPE 44
+        NODETYPE 204
+        NAME #zRecordInfoSavedScript
+      ENDNODE
+      ENDGROUP
+      
+  ENDPROJECT
+  
+
+***Element: END

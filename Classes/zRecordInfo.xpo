@@ -1,0 +1,1125 @@
+﻿Exportfile for AOT version 1.0 or later
+Formatversion: 1
+
+***Element: CLS
+
+; 
+; --------------------------------------------------------------------------------
+  CLSVERSION 1
+  
+  CLASS #zRecordInfo
+    PROPERTIES
+      Name                #zRecordInfo
+      RunOn               #Client
+      Origin              #{F8474900-EC46-4B82-991A-2BBB71B84B00}
+      LegacyId            #50500
+    ENDPROPERTIES
+    
+    METHODS
+      SOURCE #addSelectedLinesToGroup
+        #void addSelectedLinesToGroup(FormDatasource zRecordInfoTmp_ds, zRecordInfoTmp zRecordInfoTmp, str 250 _datasourceName, Name _name)
+        #{
+        #    zRecordInfoTmp          tmp;
+        #    zRecordInfoTemplate     zRecordInfoTemplate;
+        #    zRecordInfoTemplateLine zRecordInfoTemplateLine;
+        #    ;
+        #    select firstonly zRecordInfoTemplate where
+        #        zRecordInfoTemplate.DatasourceName == _datasourceName &&
+        #        zRecordInfoTemplate.Name == _name;
+        #    if (!zRecordInfoTemplate.RecId)
+        #        return;
+        #
+        #    for (tmp = zRecordInfoTmp_ds.getFirst(1) ?  // есть ли помеченные записи -
+        #                    zRecordInfoTmp_ds.getFirst(1) :  // если есть, взять первую
+        #                    zRecordInfoTmp;                  // иначе взять текущую
+        #                    tmp;                              // продолжать до тех пор, пока есть записи для обработки
+        #                    tmp = zRecordInfoTmp_ds.getNext())     // взять потенциальную следующую запись
+        #    {
+        #        select firstonly zRecordInfoTemplateLine where
+        #            zRecordInfoTemplateLine.RefzRecordInfoTemplateRecId == zRecordInfoTemplate.RecId &&
+        #            zRecordInfoTemplateLine.DatasourceName == tmp.FormDatasourceName &&
+        #            zRecordInfoTemplateLine.RefFieldName == tmp.RefFieldName;
+        #        if (!zRecordInfoTemplateLine.RecId)
+        #        {
+        #            zRecordInfoTemplateLine.RefzRecordInfoTemplateRecId = zRecordInfoTemplate.RecId;
+        #            zRecordInfoTemplateLine.DatasourceName = tmp.FormDatasourceName;
+        #            zRecordInfoTemplateLine.RefFieldName = tmp.RefFieldName;
+        #            zRecordInfoTemplateLine.insert();
+        #        }
+        #    }
+        #}
+      ENDSOURCE
+      SOURCE #buildTree
+        #void buildTree(zRecordInfoTmp _zRecordInfoTmp)
+        #{
+        #    zRecordInfoTemplate     zRecordInfoTemplate;
+        #    zRecordInfoTmp          tmp;
+        #    ImageList               imageList = new ImageList( ImageList::smallIconWidth() , ImageList::smallIconHeight() );
+        #    int                     i;
+        #    int                     rootid;
+        #    FormTreeItem            ParentTreeItem;
+        #    FormTreeItem            FormTreeItem;
+        #    ;
+        #    #RESOURCE
+        #    #DEFINE.IMG_NODE_FORM(816)
+        #    #DEFINE.IMG_NODE_FIELDS(824)
+        #    #DEFINE.IMG_NODE_QUERY(829)
+        #    #DEFINE.IMG_NODE_DATASOURCE(890)
+        #    #DEFINE.IMG_NODE_DATASOURCES(891)
+        #    #DEFINE.IMG_NODE_SORT(892)
+        #    #DEFINE.IMG_NODE_RANGE(913)
+        #    #DEFINE.IMG_NODE_RELATIONS(894)
+        #    #DEFINE.IMG_NODE_RELATION(893)
+        #
+        #    imageList.add( new Image(#RES_NODE_CLOSED));            //  0
+        #    imageList.add( new Image(#RES_NODE_OPEN));              //  1
+        #    imageList.add( new Image(#IMG_NODE_DATASOURCE));        //  2
+        #    imageList.add( new Image(#IMG_NODE_DATASOURCES));       //  3
+        #    imageList.add( new Image(#IMG_NODE_QUERY));             //  4
+        #    imageList.add( new Image(#IMG_NODE_FORM));              //  5
+        #    imageList.add( new Image(#IMG_NODE_FIELDS));            //  6
+        #    imageList.add( new Image(#IMG_NODE_SORT));              //  7
+        #    imageList.add( new Image(#IMG_NODE_RANGE));             //  8
+        #    imageList.add( new Image(#IMG_NODE_RELATIONS));         //  9
+        #    imageList.add( new Image(#IMG_NODE_RELATION));          // 10
+        #
+        #    tree.setImagelist(imageList);
+        #
+        #    tmp.setTmpData(_zRecordInfoTmp);
+        #    while select tmp group by FormDatasourceNum, FormDatasourceName
+        #    {
+        #        ParentTreeItem = null;
+        #        while select zRecordInfoTemplate where
+        #            zRecordInfoTemplate.DatasourceName == tmp.FormDatasourceName
+        #        {
+        #            if (!ParentTreeItem)
+        #            {
+        #                ParentTreeItem = new FormTreeItem(tmp.FormDatasourceName, 2, 1, strfmt("1;%1", tmp.FormDatasourceName));
+        #                i = tree.addItem(0, 0, ParentTreeItem);
+        #            }
+        #            FormTreeItem = new FormTreeItem(zRecordInfoTemplate.Name, 6, 0, strfmt("2;%1;%2", tmp.FormDatasourceName, zRecordInfoTemplate.Name));
+        #            tree.addItem(i, 0, FormTreeItem);
+        #        }
+        #        if (!ParentTreeItem)
+        #        {
+        #            ParentTreeItem = new FormTreeItem(tmp.FormDatasourceName, 2, 0, strfmt("1;%1", tmp.FormDatasourceName));
+        #            i = tree.addItem(0, 0, ParentTreeItem);
+        #        }
+        #
+        #        tree.expand(i ,FormTreeExpand::EXPAND);
+        #    }
+        #}
+      ENDSOURCE
+      SOURCE #classDeclaration
+        #//Мультипаспорт записи, DEM, 20.02.2017
+        #class zRecordInfo
+        #{
+        #    FormRun                 callerFormRun;
+        #    Object                  zRecordInfoFormRun;
+        #    FormTreeControl         tree;
+        #    Query                   Query;
+        #    QueryBuildDatasource    firstQbds;
+        #    zQueryPath              zQueryPath;
+        #}
+      ENDSOURCE
+      SOURCE #fillQueryTree
+        #query fillQueryTree(zRecordInfoTmp zRecordInfoTmp)
+        #{
+        #    int                     dataSourceNo;
+        #    FormBuildDatasource     formDataSource;
+        #    str                     s;
+        #    ;
+        #    zQueryPath = new zQueryPath();
+        #    zQueryPath.run(callerFormRun, zRecordInfoTmp, zRecordInfoFormRun);
+        #
+        #    Query = new Query();
+        #    firstQbds = null;
+        #    for (datasourceNo = 1; dataSourceNo <= callerFormRun.form().dataSourceCount(); dataSourceNo++)
+        #    {
+        #        formDataSource = callerFormRun.form().dataSource(dataSourceno);
+        #        if (!formDatasource.joinSource() || formDatasource.linkType() <= 2)
+        #        {
+        #            s = formDataSource.name();
+        #            if (!zQueryPath.needToIncludeInUpdateQuery(s, zRecordInfoTmp))
+        #                continue;
+        #
+        #            this.fillQueryTreeFormDatasource(zRecordInfoTmp, callerFormRun.dataSource(dataSourceNo));
+        #        }
+        #    }
+        #    return query;
+        #}
+      ENDSOURCE
+      SOURCE #fillQueryTreeFormDatasource
+        #void fillQueryTreeFormDatasource(zRecordInfoTmp zRecordInfoTmp, formDatasource formDatasource)
+        #{
+        #    Query                   localQuery;  // JAAZ, 08.08.01
+        #    QueryBuildDataSource    queryBuildDatasource;
+        #
+        #    Int                     i;
+        #    int                     k;
+        #
+        #    // JAAZ, 08.08.01 -->
+        #    if (!formDatasource.queryRun() || !formDatasource.queryRun().Query())
+        #        return;
+        #    localQuery  = formDatasource.queryRun().Query();
+        #    // JAAZ, 08.08.01 <--
+        #
+        #    k = localQuery.childDataSourceCount();
+        #    for (i = 1; i <= localQuery.childDataSourceCount(); i++)
+        #    {
+        #        queryBuildDatasource = localQuery.childDataSourceNo(i);
+        #        this.fillQueryTreeQueryDatasource(zRecordInfoTmp, queryBuildDatasource, null, formDatasource, true, formDatasource.linkType(), formDatasource.name());
+        #    }
+        #}
+      ENDSOURCE
+      SOURCE #fillQueryTreeQueryDatasource
+        #void fillQueryTreeQueryDatasource(zRecordInfoTmp zRecordInfoTmp, QueryBuildDatasource queryBuildDatasource, queryBuildDatasource parentQbds, FormDatasource _formDatasource, boolean top = false, int linkType = 10000, Name _dsName = "")
+        #{
+        #    Int                 i;
+        #
+        #    QueryBuildDatasource    childDatasource;
+        #    QueryBuildFieldList     queryBuildFieldList;
+        #    QueryBuildRange         queryBuildRange;
+        #    QueryBuildLink          queryBuildLink;
+        #    QueryBuildDynaLink      queryBuildDynaLink;
+        #    Query                   localQuery;
+        #
+        #    DictField               dictField;
+        #    JoinMode                joinMode;
+        #    RangeStatus             rangeStatus;
+        #    QueryBuildDatasource    qbds;
+        #    Set                     usedDynalink = new Set(Types::Integer);
+        #    str                     s;
+        #    zRecordInfoTmp          tmp;
+        #    QueryBuildRange         qbr;
+        #    DictRelation            DictRelation;
+        #
+        #    PartList                partList;
+        #    Object                  obj;
+        #    FormDatasource          formDatasource;
+        #
+        #    boolean partExists(FormRun _formRun, str _name)
+        #    {
+        #        PartList partListLocal = new PartList(_formRun);
+        #        FormRun part;
+        #        int j;
+        #
+        #        for(j = 1; j <= partListLocal.partCount(); j++)
+        #        {
+        #            part = partListLocal.getPartById(j);
+        #
+        #            if (part && part.name() == _name)
+        #            {
+        #                return true;
+        #            }
+        #        }
+        #        return false;
+        #    }
+        #    ;
+        #
+        #    if (!queryBuildDatasource.enabled())
+        #        return;
+        #    if (_dsName && Query.dataSourceName(_dsName) != null)
+        #        return;
+        #    localQuery  = _formDatasource.queryRun().Query();
+        #    queryBuildFieldList = queryBuildDataSource.fields();
+        #    if (!queryBuildFieldList.dynamic())
+        #        return;
+        #
+        #    if (top && linkType <= 2 && firstQbds)
+        #    {
+        #        if (!zQueryPath.needToIncludeInUpdateQuery(_dsName, zRecordInfoTmp))
+        #        {
+        #            return;
+        #        }
+        #    }
+        #
+        #    joinMode = queryBuildDatasource.joinMode();
+        #
+        #    obj = null; //ссылка на форму-контейнер, в которой содержится эта part
+        #    if (!callerFormRun.pageInteraction())
+        #    {
+        #        partList = new PartList(callerFormRun);
+        #        if (!partList.partCount()) //если на форме нет частей, то предполашаем, что эта форма - часть родительскрй формы, которая находится в args().caller()
+        #        {
+        #            obj = callerFormRun.args();
+        #            if (obj)
+        #                obj = obj.caller(); //получаем родительскую форму
+        #            if (obj && (obj is FormRun))
+        #            {
+        #                if (!partExists(obj, callerFormRun.name())) //проверяем, что текущая форма действительно является частью родительской формы, а не просто вызвана из другой формы
+        #                    obj = null;
+        #            }
+        #        }
+        #    }
+        #
+        #
+        #    if (!parentQbds)
+        #    {
+        #        if (firstQbds && queryBuildDataSource.dynalinkCount())
+        #        {
+        #            for (i = 1; i <= queryBuildDataSource.dynalinkCount(); i++)
+        #            {
+        #                queryBuildDynalink = queryBuildDataSource.dynalink(i);
+        #                if (firstQbds.table() == queryBuildDynalink.cursor().TableId)
+        #                {
+        #                    if (!qbds)
+        #                    {
+        #                        qbds = firstQbds.addDataSource(queryBuildDataSource.table());
+        #                    }
+        #                    qbds.addLink(queryBuildDynalink.dynamicField(), queryBuildDynalink.field());
+        #                    usedDynalink.add(i);
+        #                }
+        #            }
+        #        }
+        #        if (!usedDynalink.elements())
+        #        {
+        #            qbds = Query.addDataSource(queryBuildDataSource.table());
+        #            if (!firstQbds)
+        #            {
+        #                firstQbds = qbds;
+        #                if (!obj || zRecordInfoFormRun.chkParent())
+        #                {
+        #                    //если форма вызвана из другой формы, то подхватываем связи
+        #                    for (i = 1; i <= queryBuildDataSource.dynalinkCount(); i++)
+        #                    {
+        #                        queryBuildDynalink = queryBuildDataSource.dynalink(i);
+        #                        qbds.addRange(queryBuildDynalink.field()).value(queryValue(queryBuildDynalink.cursor().(queryBuildDynalink.dynamicField())));
+        #                        usedDynalink.add(i);
+        #                    }
+        #                }
+        #            }
+        #        }
+        #    }
+        #    else
+        #    {
+        #        qbds = parentQbds.addDataSource(queryBuildDataSource.table());
+        #        firstQbds = parentQbds;
+        #    }
+        #
+        #    qbds.name(_dsName ? _dsName : queryBuildDataSource.name());
+        #    qbds.fetchMode(QueryFetchMode::One2One);
+        #
+        #    if (top && linkType <= 2 && qbds != firstQbds)
+        #    {
+        #        qbds.fetchMode(QueryFetchMode::One2One);
+        #        //qbds.joinMode(JoinMode::OuterJoin);
+        #        qbds.joinMode(JoinMode::InnerJoin);
+        #
+        #        if ( zRecordInfoFormRun.chkParent() && firstQbds)
+        #        {
+        #            if (!parentQbds)
+        #                parentQbds = firstQbds;
+        #            tmp.setTmpData(zRecordInfoTmp);
+        #            select firstonly tmp where
+        #                tmp.FormDatasourceName == parentQbds.name() &&
+        #                tmp.RefFieldName == "RecId";
+        #            if (!tmp.RecId)
+        #            {
+        #                throw error(strfmt("Не обнаружено поле RecId в источнике данных '%1'!", parentQbds.name()));
+        #            }
+        #            qbr = SysQuery::findOrCreateRange(parentQbds, tmp.RefFieldId);
+        #            qbr.value(tmp.FieldValue);
+        #        }
+        #    }
+        #    else
+        #    {
+        #        qbds.joinMode(joinMode);
+        #    }
+        #
+        #    //User Filters
+        #    if (obj && (obj is FormRun))
+        #    {
+        #        formDatasource = obj.dataSource(1);
+        #        localQuery  = formDatasource.queryRun().Query();
+        #        //info(localQuery.datasourceNo(1).toString()); //достаем запрос родительской формы
+        #        for (i = 1; i <= localQuery.queryFilterCount(); i++)
+        #        {
+        #            //info(localQuery.queryFilter(i).toString()); //достаем пользовательские фильтры из родительской формы
+        #            s = localQuery.queryFilter(i).dataSource().name();
+        #            if (localQuery.queryFilter(i).dataSource().name() == qbds.name())
+        #                Query.addQueryFilter(qbds, localQuery.queryFilter(i).field()).value(localQuery.queryFilter(i).value());
+        #            else if (qbds == firstQbds)
+        #            {
+        #                if (localQuery.queryFilter(i).dataSource().table() == qbds.table())
+        #                    Query.addQueryFilter(qbds, localQuery.queryFilter(i).field()).value(localQuery.queryFilter(i).value());
+        #            }
+        #        }
+        #    }
+        #    for (i = 1; i <= localQuery.queryFilterCount(); i++)
+        #    {
+        #        //info(localQuery.queryFilter(i).toString());
+        #        //s = localQuery.queryFilter(i).dataSource().name();
+        #        if (localQuery.queryFilter(i).dataSource().name() == qbds.name())
+        #            Query.addQueryFilter(qbds, localQuery.queryFilter(i).field()).value(localQuery.queryFilter(i).value());
+        #    }
+        #
+        #    // Dynalink
+        #    if ((!obj || qbds != firstQbds) && queryBuildDataSource.dynalinkCount())
+        #    {
+        #        for (i = 1; i <= queryBuildDataSource.dynalinkCount(); i++)
+        #        {
+        #            if (usedDynalink.in(i))
+        #                continue;
+        #            queryBuildDynalink = queryBuildDataSource.dynalink(i);
+        #            qbds.addDynalink(queryBuildDynalink.field(), queryBuildDynaLink.cursor(), queryBuildDynalink.dynamicField());
+        #        }
+        #    }
+        #
+        #
+        #    // Ranges
+        #    if (queryBuildDatasource.rangeCount())
+        #    {
+        #        for (i = 1; i <= queryBuildDataSource.rangeCount(); i++)
+        #        {
+        #            queryBuildRange = queryBuildDatasource.range(i);
+        #            qbds.addRange(queryBuildRange.field()).value(queryBuildRange.value());
+        #        }
+        #    }
+        #
+        #    // Relation
+        #    if (queryBuildDatasource.linkCount())
+        #    {
+        #        for (i = 1; i <= queryBuildDatasource.LinkCount(); i++)
+        #        {
+        #            queryBuildLink = queryBuildDatasource.link(i);
+        #            if (queryBuildLink.joinRelation())
+        #                qbds.relations(true);
+        #            if (queryBuildLink.field() && queryBuildLink.relatedField())
+        #            //qbds.addLink(QueryBuildLink.relatedField(), queryBuildLink.field());
+        #                qbds.addLink(queryBuildLink.field(), QueryBuildLink.relatedField());
+        #            else if (queryBuildLink.joinRelation())
+        #                qbds.relations(true);
+        #        }
+        #    }
+        #
+        #    // Datasources
+        #    if (queryBuildDataSource.childDataSourceCount())
+        #    {
+        #        for (i = 1; i <= queryBuildDataSource.childDataSourceCount(); i++)
+        #        {
+        #            childDatasource = queryBuildDatasource.childDataSourceNo(i);
+        #            s = childDatasource.name();
+        #            this.fillQueryTreeQueryDatasource(zRecordInfoTmp, childDatasource, qbds, _formDatasource,  false, 10000, s);
+        #        }
+        #    }
+        #}
+      ENDSOURCE
+      SOURCE #formControlIsDataBound
+        #boolean formControlIsDataBound(Object _formControl)
+        #{
+        #    FormControlType formControlType = SysFormRun::controlType(classidget(_formControl));
+        #    boolean         ret;
+        #    ;
+        #
+        #    if (_formControl)
+        #    {
+        #        if (formControlType == FormControlType::CheckBox ||
+        #            formControlType == FormControlType::ComboBox ||
+        #            formControlType == FormControlType::ListBox ||
+        #            formControlType == FormControlType::RadioButton ||
+        #            formControlType == FormControlType::String ||
+        #            formControlType == FormControlType::StaticText ||
+        #            formControlType == FormControlType::Date ||
+        #            formControlType == FormControlType::Integer ||
+        #            formControlType == FormControlType::Real ||
+        #            formControlType == FormControlType::Time ||
+        #            formControlType == FormControlType::Image)
+        #        {
+        #            ret = true;
+        #        }
+        #    }
+        #
+        #    return ret;
+        #}
+      ENDSOURCE
+      SOURCE #lookupTable
+        #public void lookupTable(DictRelation       _dictRelation,
+        #                                         Query              _query,
+        #                                         recId              _recId,
+        #                                         Common             _common,
+        #                                         FormStringControl  _formStringControl,
+        #                                         queryBuildDataSource   queryBuildDataSource
+        #                                         )
+        #{
+        #    SysTableLookup          sysTableLookup = SysTableLookup::newParameters(_dictRelation.externTable(), _formStringControl);
+        #    DictTable               externTable    = new DictTable(_dictRelation.externTable());
+        #    Query                   relationQuery  = new Query();
+        #    QueryBuildDataSource    relationDataSource;
+        #    QueryBuildRange         relationRange;
+        #    //TmpSysQuery             tmpRecord;
+        #    zRecordInfoTmp          tmpRecord;
+        #    //TmpSysQuery             tmpSysQuery;
+        #    //QueryBuildDataSource    queryBuildDataSource;
+        #    container               dataSourcePack;
+        #    container               fieldPack;
+        #    DataSourceNumber        dataSourceNumber;
+        #    fieldId                 fieldId;
+        #    int                     i, j;
+        #    ;
+        #    tmpRecord = _common;
+        #    //tmpSysQuery.setTmpData(_common);
+        #
+        #    if (tmpRecord.RefTableId &&
+        #        tmpRecord.RefFieldId)
+        #    {
+        #        relationDataSource = relationQuery.addDataSource(_dictRelation.externTable());
+        #
+        #        for (i=1; i <= _dictRelation.lines(); i++)
+        #        {
+        #            fieldId = Global::fieldId2Ext(_dictRelation.lineTableValue(i), 1);
+        #
+        #            switch (_dictRelation.lineType(i))
+        #            {
+        #                case TableRelation::Field:
+        #                    if (tmpRecord.RefFieldId == fieldId)
+        #                    {
+        #                        switch (_dictRelation.lineExternTableValue(i))
+        #                        {
+        #                            case (externTable.titleField1()):
+        #                                sysTableLookup.addLookupfield(_dictRelation.lineExternTableValue(i), true);
+        #                                sysTableLookup.addLookupfield(externTable.titleField2());
+        #                                break;
+        #                            case (externTable.titleField2()):
+        #                                sysTableLookup.addLookupfield(externTable.titleField1());
+        #                                sysTableLookup.addLookupfield(_dictRelation.lineExternTableValue(i), true);
+        #                                break;
+        #                            default :
+        #                                sysTableLookup.addLookupfield(_dictRelation.lineExternTableValue(i), true);
+        #                        }
+        #                    }
+        #                    else
+        #                    {
+        #                        sysTableLookup.addLookupfield(_dictRelation.lineExternTableValue(i));
+        #
+        #                        //queryBuildDataSource = _query.dataSourceUniqueId(tmpRecord.dataSourceNo);
+        #
+        #                        if (queryBuildDataSource.linkCount())
+        #                        {
+        #                            [dataSourcePack, fieldPack] = SysTableRelation::findRelatedQueryFields(_query, queryBuildDataSource, _dictRelation.lineExternTableValue(i));
+        #                        }
+        #
+        #                        //dataSourcePack = conIns(dataSourcePack, conLen(dataSourcePack)+1, tmpRecord.dataSourceNo);
+        #                        dataSourcePack = conIns(dataSourcePack, conLen(dataSourcePack)+1, 1);
+        #                        fieldPack      = conIns(fieldPack, conLen(fieldPack)+1, _dictRelation.lineTableValue(i));
+        #
+        #                        for (j=1; j <= conLen(dataSourcePack); j++)
+        #                        {
+        #                            dataSourceNumber = conPeek(dataSourcePack, j);
+        #                            fieldId          = Global::fieldId2Ext(conPeek(fieldPack, j), 1);
+        #
+        #//                            while select firstOnly tmpSysQuery
+        #//                                index sortingIdx
+        #//                                where tmpSysQuery.field_Id     == fieldId
+        #//                                   && tmpSysQuery.dataSourceNo == dataSourceNumber
+        #//                            {
+        #//                                relationRange = relationDataSource.addRange(_dictRelation.lineExternTableValue(i));
+        #//                                relationRange.value(tmpSysQuery.rangeValue);
+        #//                            }
+        #                        }
+        #                    }
+        #                    break;
+        #                case TableRelation::ThisFixed:
+        #                    break;
+        #                case TableRelation::ExternFixed:
+        #                    relationRange = relationDataSource.addRange(_dictRelation.lineExternTableValue(i));
+        #                    relationRange.value(int2str(_dictRelation.lineTableValue(i)));
+        #                    break;
+        #            }
+        #        }
+        #    }
+        #    sysTableLookup.parmQuery(relationQuery);
+        #    sysTableLookup.performFormLookup();
+        #}
+      ENDSOURCE
+      SOURCE #lookupTableRelation
+        #RelationName lookupTableRelation(recId _recId, zRecordInfoTmp _zRecordInfoTmp)
+        #{
+        #    RelationName            relationName;
+        #    container               fieldRelation;
+        #    container               fixedRelation;
+        #    ;
+        #
+        #    if (_zRecordInfoTmp.RefFieldId &&
+        #        _zRecordInfoTmp.RefTableId)
+        #    {
+        #        [fieldRelation, fixedRelation] = SysTableRelation::findRelation(_zRecordInfoTmp.RefTableId, _zRecordInfoTmp.RefFieldId);
+        #
+        #        if (fixedRelation)
+        #        {
+        #            relationName = zRecordInfo::lookupTableFixedRelation(_zRecordInfoTmp.RefTableId, _zRecordInfoTmp.RefFieldId, null, fixedRelation);
+        #        }
+        #        if (!relationName &&
+        #            fieldRelation)
+        #        {
+        #            relationName = zRecordInfo::lookupTableFieldRelation(_zRecordInfoTmp.RefTableId, _zRecordInfoTmp.RefFieldId, fieldRelation);
+        #        }
+        #    }
+        #    return relationName;
+        #}
+      ENDSOURCE
+      SOURCE #lookupValue
+        #void lookupValue(FormStringControl _formStringControl, recId _recId, zRecordInfoTmp _zRecordInfoTmp)
+        #{
+        #    SysDictField            sysDictField;
+        #    DictRelation            dictRelation;
+        #    RelationName            relationName;
+        #    zRecordInfoTmp          cursor;
+        #    SysDictType             sysDictType;
+        #    query                   _query;
+        #    queryBuildDataSource    qbds;
+        #
+        #    cursor = _zRecordInfoTmp;
+        #
+        #    if (cursor.RefTableId &&
+        #        cursor.RefFieldId)
+        #    {
+        #        cursor.FieldValue = _formStringControl.text();
+        #        sysDictField = new SysDictField(cursor.RefTableId, cursor.RefFieldId);
+        #
+        #// Denis Zakharov, 2004-09-21, для работы формы GM_TreeLookup
+        #        _formStringControl.extendedDatatype(sysDictField.typeId());
+        #        //_formStringControl.arrayIndex(sysDictField.arrayIndex());
+        #        _formStringControl.arrayIndex(_zRecordInfoTmp.FieldArrayIdx);
+        #
+        #        if (sysDictField &&
+        #            _formStringControl.lookupButton() == FormLookupButton::Always)
+        #        {
+        #            _formStringControl.hasChanged(FALSE);
+        #
+        #            if (!sysDictField.configurationKeyId() ||
+        #                isConfigurationKeyEnabled(sysDictField.configurationKeyId()))
+        #            {
+        #                if (zRecordInfo::typeHasFormHelp(sysDictField.typeId()))
+        #                {
+        #                    _formStringControl.performTypeLookup(sysDictField.typeId(), sysDictField.arrayIndex());
+        #                }
+        #                else
+        #                {
+        #                    if(SysLookup::getExtEnumId(sysDictField))
+        #                    {
+        #                        _formStringControl.performFormLookup(zRecordInfo::lookupEnum(sysDictField));
+        #                    }
+        #                    else
+        #                    {
+        #                        if (sysDictField.baseType() == Types::DATE)
+        #                        {
+        #                            _formStringControl.performFormLookup(zRecordInfo::lookupDate(zRecordInfoFormRun));
+        #                        }
+        #                        else
+        #                        {
+        #                            sysDictType = new SysDictType(fieldExt2Id(sysDictField.typeId()));
+        #                            if (sysDictType &&
+        #                                sysDictType.relationObject())
+        #                            {
+        #                                _formStringControl.performTypeLookup(sysDictField.typeId(), sysDictField.arrayIndex());
+        #                            }
+        #                            else
+        #                            {
+        #                                if (zRecordInfo::typeHasFormHelpExtended(sysDictField.typeId()))
+        #                                {
+        #                                    _formStringControl.performTypeLookup(sysDictField.typeId(), sysDictField.arrayIndex());
+        #                                }
+        #                                else
+        #                                {
+        #//                                relationName = element.lookupTableRelation(_recId, cursor);
+        #//
+        #//                                if (relationName)
+        #//                                {
+        #//                                    dictRelation = new DictRelation(sysDictField.tableid());
+        #//                                    dictRelation.loadNameRelation(relationName);
+        #//                                    _query = new Query();
+        #//                                    qbds = _query.addDataSource(_zRecordInfoTmp.RefTableId);
+        #//                                    element.lookupTable(dictRelation, _query, _recId, cursor, _formStringControl, qbds);
+        #//                                }
+        #                                }
+        #                            }
+        #                        }
+        #                    }
+        #                }
+        #            }
+        #        }
+        #    }
+        #}
+      ENDSOURCE
+      SOURCE #new
+        #void new(FormRun _callerFormRun, FormRun _zRecordInfoFormRun)
+        #{
+        #    Query                   localQuery;
+        #    FormDatasource          formDatasource;
+        #    int                     i;
+        #    PartList                partList;
+        #    Object                  obj;
+        #
+        #    boolean partExists(FormRun _formRun, str _name)
+        #    {
+        #        PartList partListLocal = new PartList(_formRun);
+        #        FormRun part;
+        #        int j;
+        #
+        #        for(j = 1; j <= partListLocal.partCount(); j++)
+        #        {
+        #            part = partListLocal.getPartById(j);
+        #
+        #            if (part && part.name() == _name)
+        #            {
+        #                return true;
+        #            }
+        #        }
+        #        return false;
+        #    }
+        #    ;
+        #    callerFormRun = _callerFormRun;
+        #    zRecordInfoFormRun = _zRecordInfoFormRun;
+        #
+        #    partList = new PartList(_callerFormRun);
+        #    if (!partList.partCount()) //если на форме нет частей, то предполашаем, что эта форма - часть родительскрй формы, которая находится в args().caller()
+        #    {
+        #        obj = _callerFormRun.args();
+        #        if (obj)
+        #            obj = obj.caller(); //получаем родительскую форму
+        #        if (obj && (obj is FormRun))
+        #        {
+        #            if (partExists(obj, _callerFormRun.name())) //проверяем, что текущая форма действительно является частью родительской формы, а не просто вызвана из другой формы
+        #            {
+        #                formDatasource = obj.dataSource(1);
+        #                localQuery  = formDatasource.queryRun().Query();
+        #                //info(localQuery.datasourceNo(1).toString()); //достаем запрос родительской формы
+        #                for (i = 1; i <= localQuery.queryFilterCount(); i++)
+        #                {
+        #                    //info(localQuery.queryFilter(i).toString()); //достаем пользовательские фильтры из родительской формы
+        #                    //if (localQuery.queryFilter(i).dataSource().name() == qbds.name())
+        #                    //    Query.addQueryFilter(qbds, localQuery.queryFilter(i).field()).value(localQuery.queryFilter(i).value());
+        #                }
+        #
+        #            }
+        #        }
+        #    }
+        #}
+      ENDSOURCE
+      SOURCE #parmTree
+        #FormTreeControl parmTree(FormTreeControl _tree = tree)
+        #{
+        #    ;
+        #    tree = _tree;
+        #    return tree;
+        #}
+      ENDSOURCE
+      SOURCE #removeSelectedLinesFromGroup
+        #void removeSelectedLinesFromGroup(FormDatasource zRecordInfoTmp_ds, zRecordInfoTmp zRecordInfoTmp, str 250 _datasourceName, Name _name)
+        #{
+        #    zRecordInfoTmp          tmp;
+        #    zRecordInfoTemplate     zRecordInfoTemplate;
+        #    zRecordInfoTemplateLine zRecordInfoTemplateLine;
+        #    ;
+        #    select firstonly zRecordInfoTemplate where
+        #        zRecordInfoTemplate.DatasourceName == _datasourceName &&
+        #        zRecordInfoTemplate.Name == _name;
+        #    if (!zRecordInfoTemplate.RecId)
+        #        return;
+        #
+        #    for (tmp = zRecordInfoTmp_ds.getFirst(1) ?  // есть ли помеченные записи -
+        #                    zRecordInfoTmp_ds.getFirst(1) :  // если есть, взять первую
+        #                    zRecordInfoTmp;                  // иначе взять текущую
+        #                    tmp;                              // продолжать до тех пор, пока есть записи для обработки
+        #                    tmp = zRecordInfoTmp_ds.getNext())     // взять потенциальную следующую запись
+        #    {
+        #        ttsbegin;
+        #        select forupdate firstonly zRecordInfoTemplateLine where
+        #            zRecordInfoTemplateLine.RefzRecordInfoTemplateRecId == zRecordInfoTemplate.RecId &&
+        #            zRecordInfoTemplateLine.DatasourceName == tmp.FormDatasourceName &&
+        #            zRecordInfoTemplateLine.RefFieldName == tmp.RefFieldName;
+        #        if (zRecordInfoTemplateLine.RecId)
+        #        {
+        #            zRecordInfoTemplateLine.delete();
+        #        }
+        #        ttscommit;
+        #    }
+        #
+        #    zRecordInfoFormRun.prevSelection("~");
+        #    tree.selectionChanged(tree.getItem(tree.getSelection()), tree.getItem(tree.getSelection()), FormTreeSelect::ByMouse);
+        #}
+      ENDSOURCE
+      SOURCE #zQueryPath
+        #zQueryPath zQueryPath()
+        #{
+        #    ;
+        #    return zQueryPath;
+        #}
+      ENDSOURCE
+      SOURCE #getAsyncKeyState
+        #client static int getAsyncKeyState(int _vKey)
+        #{
+        #    #define.UserDLL('USER32')
+        #
+        #    DLL         _winApiDLL      = new DLL(#UserDLL);
+        #    DLLFunction _getKeyState    = new DLLFunction(_winApiDLL,'GetAsyncKeyState');
+        #    ;
+        #
+        #    _getKeyState.returns(ExtTypes::WORD);
+        #    _getKeyState.arg(ExtTypes::DWORD);
+        #
+        #    return _getKeyState.call(_vKey);
+        #}
+        #
+      ENDSOURCE
+      SOURCE #getValueClient
+        #static client anytype getValueClient(str _name)
+        #{
+        #    SysGlobalCache  cache   = classFactory.globalCache();
+        #    Session         session = new xSession();
+        #    ;
+        #    return cache.get(_name, session.sessionId());
+        #}
+      ENDSOURCE
+      SOURCE #hasAccessToPrivilege
+        #static boolean hasAccessToPrivilege(SecurityTaskAotName _privilegeName)
+        #{
+        #   UserInfo                    userInfo;
+        #   SecurityUserRole            securityUserRole;
+        #   SecurityRoleTaskGrant       srtGrant;
+        #   securityRoleExplodedGraph   securityRoleExplodedGraph;
+        #   securityTaskExplodedGraph   securityTaskExplodedGraph;
+        #   SecurityTask                securityTask;
+        #    SysSecRole              SysSecRole;
+        #   select firstOnly securityTask where securityTask.AotName == _privilegeName;
+        #   select RecId from userInfo where userInfo.Enable && userInfo.id == curUserId()
+        #   exists join securityUserRole where securityUserRole.User == userInfo.Id &&
+        #       securityUserRole.AssignmentStatus == RoleAssignmentStatus::Enabled
+        #   join securityRoleExplodedGraph where securityUserRole.SecurityRole == securityRoleExplodedGraph.SecurityRole
+        #   join srtGrant where srtGrant.SecurityRole == securityRoleExplodedGraph.SecuritySubRole
+        #   join securityTaskExplodedGraph where securityTaskExplodedGraph.SecurityTask == srtGrant.SecurityTask &&
+        #       securityTaskExplodedGraph.SecuritySubTask == securityTask.RecId;
+        #   if (userInfo.RecId)
+        #       return true;
+        #   if (isSystemAdministrator())
+        #       return true;
+        #
+        #    return false;
+        #}
+      ENDSOURCE
+      SOURCE #key2Data
+        #static anytype key2Data(anytype Key, KeySum keySum)
+        #{
+        #    int keyPos   = keySum.key2Index_W(Key);
+        #
+        #    if (keyPos)
+        #        return keySum.index2Data(keyPos);
+        #
+        #    return conNull();
+        #}
+      ENDSOURCE
+      SOURCE #lookupDate
+        #static client FormRun lookupDate(FormRun caller)
+        #{
+        #    FormRun formRun;
+        #    Args    args;
+        #    ;
+        #    args        = new Args(formStr(SysDateLookup));
+        #    args.caller(caller);
+        #    formRun     = classfactory.formRunClass(args);
+        #    formRun.init();
+        #
+        #    return formRun;
+        #}
+      ENDSOURCE
+      SOURCE #lookupEnum
+        #public static client FormRun lookupEnum(SysDictField _sysDictField)
+        #{
+        #    FormRun formRun;
+        #    Args    args;
+        #    ;
+        #    args        = new Args(formStr(zSysLookup));
+        #
+        #    args.parm(int2str(SysLookup::getExtEnumId(_sysDictField)));
+        #    formRun     = classFactory.formRunClass(args);
+        #    formRun.init();
+        #
+        #    return formRun;
+        #}
+      ENDSOURCE
+      SOURCE #lookupTableFieldRelation
+        #static RelationName lookupTableFieldRelation(tableId _tableId, fieldId _fieldId, container fieldRelation)
+        #{
+        #    DictRelation    dictRelation        = new DictRelation(_tableId);
+        #    RelationName    relationName;
+        #    container       lastLineRelation;
+        #    int             i, lineCount, elements;
+        #    ;
+        #
+        #    for(i=1; i <= conLen(fieldRelation); i++)
+        #    {
+        #        dictRelation.loadNameRelation(conPeek(fieldRelation, i));
+        #
+        #        if (dictRelation.lines() &&
+        #            dictRelation.lineExternTableValue(dictRelation.lines()) == Global::fieldExt2Id(_fieldId))
+        #        {
+        #            elements++;
+        #            lastLineRelation = conIns(lastLineRelation, elements, conPeek(fieldRelation, i));
+        #        }
+        #    }
+        #
+        #    if (lastLineRelation)
+        #    {
+        #        fieldRelation = lastLineRelation;
+        #    }
+        #
+        #    dictRelation.loadNameRelation(conPeek(fieldRelation, 1));
+        #    lineCount    = dictRelation.lines();
+        #    relationName = conPeek(fieldRelation, 1);
+        #
+        #    elements = conLen(fieldRelation);
+        #
+        #    for(i=2; i <= elements; i++)
+        #    {
+        #        dictRelation.loadNameRelation(conPeek(fieldRelation, i));
+        #
+        #        if (dictRelation.lines() < lineCount)
+        #        {
+        #            lineCount    = dictRelation.lines();
+        #            relationName = conPeek(fieldRelation, i);
+        #        }
+        #    }
+        #
+        #    return relationName;
+        #}
+      ENDSOURCE
+      SOURCE #lookupTableFixedRelation
+        #static public RelationName lookupTableFixedRelation(tableId _tableId, fieldId _fieldId, Common _common, container _fixedRelation)
+        #{
+        #    DictRelation    dictRelation        = new DictRelation(_tableId);
+        #    SysDictField    relationField;
+        #    RelationName    relationName;
+        #    TmpSysQuery     tmpSysQuery;
+        #    boolean         externFixed;
+        #    int             i, j, elements, relationLines;
+        #    ;
+        #    tmpSysQuery.setTmpData(_common);
+        #    elements = conLen(_fixedRelation);
+        #    for(i=1; i <= elements; i++)
+        #    {
+        #        dictRelation.loadNameRelation(conPeek(_fixedRelation, i));
+        #
+        #        relationLines = dictRelation.lines();
+        #        for (j=1; j < relationLines; j++)
+        #        {
+        #            if (dictRelation.lineType(j) == TableRelation::ThisFixed)
+        #            {
+        #                relationField = new SysDictField(_tableId, dictRelation.lineTableValue(j), 1);
+        #
+        #                if (relationField.enumId())
+        #                {
+        #                    select firstOnly tmpSysQuery
+        #                        index sortingIdx
+        #                        where tmpSysQuery.field_Id == relationField.extendedFieldId()
+        #                           && tmpSysQuery.rangeValue;
+        #
+        #                    if (tmpSysQuery &&
+        #                        dictRelation.lineExternTableValue(j) == SysLookup::enumLabel2Id(relationField.enumId(), tmpSysQuery.rangeValue))
+        #                    {
+        #                        externFixed = true;
+        #                    }
+        #                    else
+        #                    {
+        #                        externFixed = false;
+        #                        break;
+        #                    }
+        #                }
+        #            }
+        #        }
+        #
+        #        if (externFixed)
+        #        {
+        #            return conPeek(_fixedRelation, i);
+        #        }
+        #    }
+        #    return relationName;
+        #}
+      ENDSOURCE
+      SOURCE #lookupValidate
+        #// AOSRunMode::server
+        #static server FormLookupButton lookupValidate(RangeStatus _rangeStatus, TableId _tableId, FieldId _fieldId)
+        #{
+        #    FormLookupButton    formLookupButton = FormLookupButton::Hidden;
+        #    SysDictField        sysDictField;
+        #    DictTable           dictTable;
+        #    DictRelation        dictRelation;
+        #    int                 relationCnt;
+        #    int                 i;
+        #
+        #    if (_rangeStatus == RangeStatus::OPEN)
+        #    {
+        #        sysDictField = new SysDictField(_tableId, _fieldId);
+        #
+        #        if(sysDictField)
+        #        {
+        #            if (SysLookup::getExtEnumId(sysDictField))
+        #            {
+        #                formLookupButton = FormLookupButton::Always;
+        #            }
+        #            else
+        #            {
+        #                if (sysDictField.baseType() == Types::DATE)
+        #                {
+        #                    formLookupButton =  FormLookupButton::Always;
+        #                }
+        #                else
+        #                {
+        #                    dictRelation = new DictRelation(sysDictField.tableid());
+        #
+        #                    if (sysDictField.typeId() &&
+        #                        !dictRelation.loadFieldRelation(sysDictField.id()))
+        #                    {
+        #                        dictTable       = new DictTable(sysDictField.tableid());
+        #                        dictRelation    = new DictRelation(sysDictField.tableid());
+        #                        relationCnt     = dictTable.relationCnt();
+        #                        for (i=1; i <= relationCnt; i++)
+        #                        {
+        #                            dictRelation.loadNameRelation(dictTable.relation(i));
+        #
+        #                            if (dictRelation.lines())
+        #                            {
+        #                                if (dictRelation.lineTableValue(dictRelation.lines()) == Global::fieldExt2Id(sysDictField.id()))
+        #                                {
+        #                                    formLookupButton =  FormLookupButton::Always;
+        #                                }
+        #                            }
+        #                        }
+        #                        formLookupButton =  FormLookupButton::Hidden;
+        #                    }
+        #                    else
+        #                    {
+        #                        formLookupButton =  FormLookupButton::Always;
+        #                    }
+        #                }
+        #            }
+        #        }
+        #    }
+        #
+        #    return formLookupButton;
+        #}
+      ENDSOURCE
+      SOURCE #recordInfoOverloadButton
+        #client static boolean recordInfoOverloadButton(int _taskId, SysSetupFormRun _sysSetupFormRun)
+        #{
+        #    #define.VK_OEM_1(49)
+        #    #Task
+        #    boolean     ret = false;
+        #    Object      obj;
+        #    int         i;
+        #    ;
+        #
+        #    if (_sysSetupFormRun.pageInteraction())
+        #        zRecordInfo::setValueClient("zCurrentListPage", _sysSetupFormRun);
+        #
+        #    if (_taskId != #taskAlt)
+        #        return false;
+        #
+        #//для поиска скан-кода клавиши, нажатой вместе с ALT
+        #//    for (i = 1; i <= 1000; i ++)
+        #//    {
+        #//        if (FormDigger::getAsyncKeyState(i) > 1
+        #//            && i != 18
+        #//            && i != 164)
+        #//        {
+        #//            info(int2str(i));
+        #//            break;
+        #//        }
+        #//    }
+        #
+        #    switch (true)
+        #    {
+        #        case zRecordInfo::getAsyncKeyState(#VK_OEM_1) > 1:
+        #            //if (zRecordInfo::hasAccessToPrivilege(identifierstr(zMultiPassport)))
+        #            {
+        #                zRecordInfo::showRecordInfo(_sysSetupFormRun);
+        #                ret = true;
+        #            }
+        #            break;
+        #        default:
+        #            ret = false;
+        #    }
+        #
+        #    return ret;
+        #}
+      ENDSOURCE
+      SOURCE #removeValueClient
+        #static client void removeValueClient(str _name)
+        #{
+        #    SysGlobalCache  cache   = classFactory.globalCache();
+        #    Session         session = new xSession();
+        #    ;
+        #    cache.remove(_name, session.sessionId());
+        #}
+      ENDSOURCE
+      SOURCE #setValueClient
+        #static client void setValueClient(str _name, anytype _value)
+        #{
+        #    SysGlobalCache  cache   = classFactory.globalCache();
+        #    Session         session = new xSession();
+        #    ;
+        #    cache.set(_name, session.sessionId(), _value);
+        #}
+      ENDSOURCE
+      SOURCE #showRecordInfo
+        #client static void showRecordInfo(SysSetupFormRun _sysSetupFormRun)
+        #{
+        #
+        #    Args                args = new Args();
+        #    Object              dialog;
+        #    ;
+        #    args.name(formstr(zRecordInfo));
+        #    args.caller(_sysSetupFormRun);
+        #    dialog = ClassFactory.formRunClass(args);
+        #    dialog.init();
+        #    dialog.run();
+        #    dialog.detach();
+        #
+        #}
+      ENDSOURCE
+      SOURCE #typeHasFormHelp
+        #static server boolean typeHasFormHelp(ExtendedTypeId _extendedTypeId)
+        #
+        #{
+        #    SysDictType sysDictType = new SysDictType(fieldExt2Id(_extendedTypeId));
+        #    boolean     ret;
+        #    ;
+        #    if (sysDictType &&
+        #        sysDictType.formHelp())
+        #    {
+        #        ret = true;
+        #    }
+        #    return ret;
+        #}
+        #
+      ENDSOURCE
+      SOURCE #typeHasFormHelpExtended
+        #static server boolean typeHasFormHelpExtended(ExtendedTypeId _extendedTypeId)
+        #
+        #{
+        #    SysDictType sysDictType = new SysDictType(fieldExt2Id(_extendedTypeId));
+        #    boolean     ret;
+        #    ;
+        #    if (sysDictType &&
+        #        sysDictType.formHelp())
+        #    {
+        #        ret = true;
+        #    }
+        #    else if (sysDictType &&
+        #        !sysDictType.formHelp())
+        #    {
+        #        sysDictType = new SysDictType(sysDictType.extend());
+        #        if (sysDictType &&
+        #            sysDictType.formHelp())
+        #        {
+        #            ret = true;
+        #        }
+        #    }
+        #    return ret;
+        #}
+        #
+      ENDSOURCE
+    ENDMETHODS
+  ENDCLASS
+
+***Element: END

@@ -1,0 +1,193 @@
+﻿Exportfile for AOT version 1.0 or later
+Formatversion: 1
+
+***Element: CLS
+
+; 
+; --------------------------------------------------------------------------------
+  CLSVERSION 1
+  
+  CLASS #zRecordInfoExpression
+    PROPERTIES
+      Name                #zRecordInfoExpression
+      Origin              #{06F5E974-2E34-4F3E-9775-F1F6B39CD77E}
+      LegacyId            #50502
+    ENDPROPERTIES
+    
+    METHODS
+      SOURCE #classDeclaration
+        #//Мультипаспорт записи, 29.03.2017, DEM
+        #//Класс генерирует и выполняет динамический код для присвоения полям вычисляемых значений
+        #//вида "if (substr(InventTable.ItemId, 1, 3) == 'aaa') InventTable.ItemId = 'bbb' + substr(InventTable.ItemId, 4, strlen(InventTable.ItemId))
+        #//Выражения могут быть многострочными и вызывать любые классы и методы Аксапты
+        #class zRecordInfoExpression
+        #{
+        #    zRecordInfoTmp      zRecordInfoTmp;
+        #}
+      ENDSOURCE
+      SOURCE #execExpression
+        #str execExpression(zRecordInfoTmp _zRecordInfoTmp, str _expression, boolean _doUpdate, Object _zRecordInfoForm,/* Common _common = null,*/ boolean _useCommon = false)
+        #{
+        #    str                 s;
+        #    str                 updateStr = _doUpdate ? "doUpdate()" : "update()";
+        #    ExecutePermission   perm;
+        #    FormDatasource      ds;
+        #    zRecordInfoTmp      selectedTmp;
+        #    zRecordInfoTmp      t;
+        #    TableName           TableName;
+        #    Common              common;
+        #    RefRecId            RefRecId;
+        #    str                 decl;
+        #    container           con;
+        #    int                 i;
+        #    str                 buf;
+        #    str                 expr;
+        #    boolean             declMode = true;
+        #    xppCompiler         xppCompiler = new xppCompiler();
+        #
+        #    str prepareDatasourceName(str _datasourceName)
+        #    {
+        #        return strrem(_datasourceName, "[]");
+        #    }
+        #
+        #    str prepareVariableName(str _vcariableName)
+        #    {
+        #        str ret = strLwr(substr(_vcariableName, 1, 1)) + substr(_vcariableName, 2, strlen(_vcariableName));
+        #        return ret;
+        #    }
+        #    ;
+        #
+        #    zRecordInfoTmp.setTmpData(_zRecordInfoTmp);
+        #    selectedTmp.setTmpData(_zRecordInfoTmp);
+        #    select firstonly selectedTmp where selectedTmp.RefTableId == _zRecordInfoTmp.RefTableId && selectedTmp.RefFieldId == _zRecordInfoTmp.RefFieldId;
+        #
+        #    s = @"void myFunc()
+        #{
+        #";
+        #    con = str2Con_RU(_expression, ";");
+        #    for (i = 1; i <= conLen(con); i++)
+        #    {
+        #        buf = conPeek(con, i);
+        #        buf = strrem(buf, " \r\n\t");
+        #        if (!buf)
+        #        {
+        #            if (declMode)
+        #                declMode = false;
+        #            continue;
+        #        }
+        #        if (declMode)
+        #            decl += conPeek(con, i) + ";\n";
+        #        else
+        #        {
+        #            if (i != conLen(con) || substr(_expression, strlen(_expression), 1) == ";")
+        #                expr += conPeek(con, i) + ";\n";
+        #            else
+        #                expr += conPeek(con, i) + "\n";
+        #        }
+        #    }
+        #    s += decl;
+        #
+        #
+        #    while select zRecordInfoTmp group by TableName, FormDatasourceName
+        #    {
+        #        TableName = tableid2Name(zRecordInfoTmp.RefTableId);
+        #        s += strfmt(@"    %1%2%3;
+        #", TableName, strrep(" ", strlen(TableName) < 40 ? 40 - strlen(TableName) : 1), prepareVariableName(prepareDatasourceName(zRecordInfoTmp.FormDatasourceName)));
+        #
+        #    }
+        #    s += @";
+        #    ttsbegin;";
+        #
+        #
+        #    while select zRecordInfoTmp group by FormDatasourceName, RefRecId
+        #    {
+        #        //если название источника данных присутствует в выражении, то включаем его в код
+        #        if (strscan(_expression, prepareDatasourceName(zRecordInfoTmp.FormDatasourceName), 1, strlen(_expression)))
+        #        {
+        #            //if (_useCommon && _common.TableId == zRecordInfoTmp.RefTableId)
+        #            //    RefRecId =  _common.RecId;
+        #            //else
+        #                RefRecId =  zRecordInfoTmp.RefRecId;
+        #            s += strfmt(@"
+        #    select forupdate firstonly %1 where %1.RecId == %2;", prepareVariableName(prepareDatasourceName(zRecordInfoTmp.FormDatasourceName)), RefRecId);
+        #        }
+        #    }
+        #
+        #    s += strfmt(@"
+        #    %1", expr);
+        #
+        #    while select zRecordInfoTmp group by FormDatasourceName
+        #    {
+        #        if (strscan(_expression, prepareDatasourceName(zRecordInfoTmp.FormDatasourceName), 1, strlen(_expression)))
+        #        {
+        #            s += strfmt(@"
+        #    if (%1.RecId != 0)
+        #", prepareVariableName(prepareDatasourceName(zRecordInfoTmp.FormDatasourceName)));
+        #            s += strfmt(@"
+        #    %1.%2;
+        #", prepareVariableName(prepareDatasourceName(zRecordInfoTmp.FormDatasourceName)), updateStr);
+        #        }
+        #    }
+        #
+        #    s += @"    ttscommit;
+        #}";
+        #
+        #    perm = new ExecutePermission();
+        #    if (perm != null)
+        #    {
+        #        perm.assert();
+        #        xppCompiler.compile(s);
+        #        if (xppCompiler.errorText())
+        #            throw error(xppCompiler.errorText() + "\n" + s);
+        #        runBuf(s);
+        #        //strResult = EvalBuf(strCodeToExecute);
+        #
+        #        CodeAccessPermission::revertAssert();
+        #    }
+        #
+        #    if (!_useCommon)
+        #    {
+        #        _zRecordInfoForm.rereadData(true);
+        #        t.setTmpData(_zRecordInfoForm.zRecordInfoTmp());
+        #        select firstonly t where t.RefTableId == selectedTmp.RefTableId && t.RefFieldId == selectedTmp.RefFieldId;
+        #        if (t.RecId)
+        #        {
+        #            common = _zRecordInfoForm.zRecordInfoTmp();
+        #            ds = common.dataSource();
+        #            ds.findRecord(t);
+        #        }
+        #    }
+        #    return s;
+        #}
+      ENDSOURCE
+      SOURCE #construct
+        #client static zRecordInfoExpression construct()
+        #{
+        #    zRecordInfoExpression       zRecordInfoExpression;
+        #    ;
+        #    zRecordInfoExpression = new zRecordInfoExpression();
+        #    return zRecordInfoExpression;
+        #}
+      ENDSOURCE
+      SOURCE #promptForSelectedField
+        #static str promptForSelectedField(zRecordInfoTmp _zRecordInfoTmp)
+        #{
+        #    str         ret;
+        #    ;
+        #    ret = strfmt("%1.%2 = ;", _zRecordInfoTmp.FormDatasourceName, _zRecordInfoTmp.RefFieldName);
+        #    return ret;
+        #}
+      ENDSOURCE
+      SOURCE #promptForSelectedField2
+        #static str promptForSelectedField2(zRecordInfoTmp _zRecordInfoTmp)
+        #{
+        #    str         ret;
+        #    ;
+        #    ret = strfmt("%1.%2", _zRecordInfoTmp.FormDatasourceName, _zRecordInfoTmp.RefFieldName);
+        #    return ret;
+        #}
+      ENDSOURCE
+    ENDMETHODS
+  ENDCLASS
+
+***Element: END

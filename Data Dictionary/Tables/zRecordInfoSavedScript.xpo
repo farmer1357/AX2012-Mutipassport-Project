@@ -1,0 +1,72 @@
+﻿Exportfile for AOT version 1.0 or later
+Formatversion: 1
+
+***Element: DBT
+
+; 
+; --------------------------------------------------------------------------------
+  TABLEVERSION 1
+  
+  TABLE #zRecordInfoSavedScript
+    EnforceFKRelation 0
+    PROPERTIES
+      Name                #zRecordInfoSavedScript
+      Label               #Сохраненный скрипт для мультипаспорта записи
+      PrimaryIndex        #NameIdx
+      Origin              #{33DAEE31-53D5-4D76-A146-363595C75ECF}
+      LegacyId            #50501
+    ENDPROPERTIES
+    
+    FIELDS
+      FIELD #Name
+        STRING
+        PROPERTIES
+          Name                #Name
+          Table               #zRecordInfoSavedScript
+          Origin              #{96B7A67F-2117-4C5C-AAF1-8B8155446191}
+          LegacyId            #50001
+          ExtendedDataType    #zRecordInfoScriptName
+          StringSize          #250
+        ENDPROPERTIES
+        
+      FIELD #Script
+        QUEUE
+        PROPERTIES
+          Name                #Script
+          Table               #zRecordInfoSavedScript
+          Origin              #{E8B8D0B3-65F1-41E3-8FC3-9FEAAE868F88}
+          LegacyId            #50002
+        ENDPROPERTIES
+        
+    ENDFIELDS
+    GROUPS
+    ENDGROUPS
+    
+    INDICES
+      #NameIdx
+      PROPERTIES
+        Name                #NameIdx
+        AllowDuplicates     #No
+        Origin              #{99CF963B-29DE-41E7-8D53-70B9238AC8E9}
+        LegacyId            #50001
+      ENDPROPERTIES
+      
+      INDEXFIELDS
+        #Name
+      ENDINDEXFIELDS
+      
+    ENDINDICES
+    FULLTEXTINDICES
+    ENDFULLTEXTINDICES
+    REFERENCES
+    ENDREFERENCES
+    
+    DELETEACTIONS
+    ENDDELETEACTIONS
+    
+    METHODS
+    ENDMETHODS
+  ENDTABLE
+  
+
+***Element: END

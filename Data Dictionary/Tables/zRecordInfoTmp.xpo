@@ -1,0 +1,508 @@
+﻿Exportfile for AOT version 1.0 or later
+Formatversion: 1
+
+***Element: DBT
+
+; 
+; --------------------------------------------------------------------------------
+  TABLEVERSION 1
+  
+  TABLE #zRecordInfoTmp
+    EnforceFKRelation 0
+    PROPERTIES
+      Name                #zRecordInfoTmp
+      TableType           #InMemory
+      Origin              #{CF60ED95-A51E-47AC-B311-D42545BDC585}
+      LegacyId            #50499
+    ENDPROPERTIES
+    
+    FIELDS
+      FIELD #FieldArrayIdx
+        INT
+        PROPERTIES
+          Name                #FieldArrayIdx
+          Table               #zRecordInfoTmp
+          Origin              #{8E984DB5-1698-49C4-981E-B842D2183A27}
+          LegacyId            #50007
+        ENDPROPERTIES
+        
+      FIELD #FieldLabel
+        STRING
+        PROPERTIES
+          Name                #FieldLabel
+          Label               #Метка
+          Table               #zRecordInfoTmp
+          Origin              #{2D271D48-B145-4443-8C7B-EA347CD987AC}
+          LegacyId            #50006
+          ExtendedDataType    #FieldLabel
+          StringSize          #250
+        ENDPROPERTIES
+        
+      FIELD #FieldValue
+        STRING
+        PROPERTIES
+          Name                #FieldValue
+          Label               #Значение
+          HelpText            #Значение
+          Table               #zRecordInfoTmp
+          Origin              #{30ACAA10-9F64-4F99-8332-0947983C4E6A}
+          LegacyId            #50005
+          StringSize          #1000
+        ENDPROPERTIES
+        
+      FIELD #FormDatasourceName
+        STRING
+        PROPERTIES
+          Name                #FormDatasourceName
+          Table               #zRecordInfoTmp
+          Origin              #{10E8E923-A6AA-4918-8E98-5DF7A4898710}
+          LegacyId            #50010
+          StringSize          #100
+        ENDPROPERTIES
+        
+      FIELD #FormDatasourceNum
+        INT
+        PROPERTIES
+          Name                #FormDatasourceNum
+          Table               #zRecordInfoTmp
+          Origin              #{B3E6F75B-5426-48DF-97DD-6C9C89EAB85C}
+          LegacyId            #50009
+        ENDPROPERTIES
+        
+      FIELD #RefFieldId
+        INT
+        PROPERTIES
+          Name                #RefFieldId
+          Table               #zRecordInfoTmp
+          Origin              #{0B4EB103-6A06-4605-900C-2F94554838F2}
+          LegacyId            #50001
+        ENDPROPERTIES
+        
+      FIELD #RefFieldName
+        STRING
+        PROPERTIES
+          Name                #RefFieldName
+          Label               #Поле
+          Table               #zRecordInfoTmp
+          Origin              #{43C5F60D-D1F0-4C22-89E8-4BA3ED14C945}
+          LegacyId            #50004
+          ExtendedDataType    #RefFieldName
+          StringSize          #40
+        ENDPROPERTIES
+        
+      FIELD #RefRecId
+        INT64
+        PROPERTIES
+          Name                #RefRecId
+          Table               #zRecordInfoTmp
+          Origin              #{91DBCE11-8C40-43D6-B05D-BD1A6841A6C9}
+          LegacyId            #50015
+          ExtendedDataType    #RefRecId
+        ENDPROPERTIES
+        
+      FIELD #RefTableId
+        INT
+        PROPERTIES
+          Name                #RefTableId
+          Table               #zRecordInfoTmp
+          Origin              #{DB6B6C4A-704D-43CA-8C63-C70D2DE7685D}
+          LegacyId            #50002
+          ExtendedDataType    #RefTableId
+        ENDPROPERTIES
+        
+      FIELD #TableName
+        STRING
+        PROPERTIES
+          Name                #TableName
+          Label               #Таблица
+          HelpText            #Таблица
+          Table               #zRecordInfoTmp
+          Origin              #{0775CBFD-F549-49B8-A497-B5A17F39D224}
+          LegacyId            #50003
+          StringSize          #250
+        ENDPROPERTIES
+        
+    ENDFIELDS
+    GROUPS
+    ENDGROUPS
+    
+    INDICES
+    ENDINDICES
+    FULLTEXTINDICES
+    ENDFULLTEXTINDICES
+    REFERENCES
+    ENDREFERENCES
+    
+    DELETEACTIONS
+    ENDDELETEACTIONS
+    
+    METHODS
+      SOURCE #saveRecord
+        #void saveRecord(boolean _doupdate, RefRecId _refRecId = 0, FormRun _formRun = null, common _parentRecord = null)
+        #{
+        #    DictTable               dictTable;
+        #    DictTable               dictParent;
+        #    DictField               dictField;
+        #    int                     fieldCnt;
+        #    int                     i;
+        #    int                     j;
+        #    int                     k;
+        #    int                     m;
+        #    int                     n;
+        #    int                     arraySize;
+        #    Common                  common;
+        #    Common                  parent;
+        #    AnyType                 value;
+        #    FormDatasource          ds;
+        #    QueryBuildDatasource    dsChild;
+        #    inventDim               inventDim;
+        #    zRecordInfoTmp          tmpParent;
+        #    Common                  t;
+        #    DictEnum                dictEnum;
+        #    DictRelation            dictRelation;
+        #    int                     idx;
+        #    str                     s1, s2, s3, s4;
+        #    int                     r;
+        #    ;
+        #
+        #    dictTable = new DictTable(this.RefTableId);
+        #    common = dictTable.makeRecord();
+        #    ttsbegin;
+        #    if (!_refRecId)
+        #        select forupdate firstonly common where common.RecId == this.RefRecId;
+        #    else
+        #        select forupdate firstonly common where common.RecId == _refRecId;
+        #    if (!common.RecId)
+        #        throw error("Запись не найдена!");
+        #
+        #    fieldCnt = dictTable.fieldCnt(TableScope::IncludeBaseTables);
+        #
+        #    for (i = 1; i <= fieldCnt; i++)
+        #    {
+        #        dictField = dictTable.fieldObject(dictTable.fieldCnt2Id(i, TableScope::IncludeBaseTables));
+        #        arraySize = dictField.arraySize();
+        #
+        #        if (dictField.id() == this.RefFieldId)
+        #        {
+        #            for (j = 1; j <= arraySize; j++)
+        #            {
+        #                if (j == this.FieldArrayIdx)
+        #                {
+        #                    if (dictField.isSql())
+        #                    {
+        #                        if (dictField.baseType() == Types::Real)
+        #                            value = str2num(strreplace(strreplace(this.FieldValue, ",", "."), " ", ""));
+        #                        else if (dictField.baseType() == Types::Date)
+        #                            value = str2Date(this.FieldValue, 123);
+        #                        else if (dictField.baseType() == Types::Enum)
+        #                        {
+        #                            value = -1;
+        #                            dictEnum = new DictEnum(dictField.enumId());
+        #                            for (idx = 0; idx < dictEnum.values(); idx++)
+        #                            {
+        #                                if (isConfigurationKeyEnabled(dictEnum.index2ConfigurationKey(idx)))
+        #                                {
+        #                                    if (dictEnum.index2Label(idx) == this.FieldValue)
+        #                                    {
+        #                                        value = dictEnum.index2Value(idx);
+        #                                        break;
+        #                                    }
+        #                                }
+        #                            }
+        #                            if (value == -1)
+        #                                throw error(strfmt("Не удалось определить значение перечислимого типа для поля %1 в таблице %2!", this.RefFieldName, this.TableName));
+        #                        }
+        #                        else
+        #                            value = this.FieldValue;
+        #
+        #                        //При изменении складских аналитик подменяем InventDimId -->
+        #                        if (this.RefTableId == tableNum(InventDim) && this.FormDatasourceNum && this.FormDatasourceName && _formRun)
+        #                        {
+        #                            inventDim = common;
+        #                            inventDim.(dictField.id()) = value;
+        #                            inventDim = inventDim::findOrCreate(inventDim);
+        #                            for (m = 1; m <= _formRun.dataSourceCount(); m++)
+        #                            {
+        #                                ds = _formRun.dataSource(m);
+        #                                for (k = 1; k <= ds.queryRun().query().dataSourceName(ds.name()).childDataSourceCount(); k++)
+        #                                {
+        #                                    dsChild = ds.queryRun().query().dataSourceName(ds.name()).childDataSourceNo(k);
+        #                                    if (dsChild.table() == tableNum(InventDim) && dsChild.name() == this.FormDatasourceName)
+        #                                    {
+        #                                        tmpParent.setTmpData(this);
+        #                                        for (n = 1; n <= dsChild.linkCount(); n++)
+        #                                        {
+        #                                            s1 = tableId2name(dsChild.link(n).relatedTable());
+        #                                            s2 = fieldId2Name(dsChild.link(n).relatedTable(), dsChild.link(n).relatedField());
+        #                                            s3 = tableId2name(dsChild.link(n).table());
+        #                                            s4 = fieldId2Name(dsChild.link(n).table(), dsChild.link(n).field());
+        #                                            if (!dsChild.link(n).relatedField() && dsChild.link(n).joinRelation() == "inventDim")
+        #                                            {
+        #                                                select firstonly tmpParent where
+        #                                                    tmpParent.RefTableId == dsChild.link(n).table() &&
+        #                                                    tmpParent.FormDatasourceName == ds.name() &&
+        #                                                    tmpParent.RefFieldName == "InventDimId";
+        #                                            }
+        #                                            else if (dsChild.link(n).relatedTable() == tableNum(InventDim) && dsChild.link(n).relatedField() == fieldNum(InventDim, InventDimId))
+        #                                            {
+        #                                                select firstonly tmpParent where
+        #                                                    tmpParent.RefTableId == dsChild.link(n).table() &&
+        #                                                    tmpParent.FormDatasourceName == ds.name() &&
+        #                                                    tmpParent.RefFieldName == fieldId2Name(dsChild.link(n).table(), dsChild.link(n).field());
+        #                                            }
+        #                                            {
+        #
+        #                                                if (tmpParent.RecId)
+        #                                                {
+        #                                                    if (!_parentRecord)
+        #                                                    {
+        #                                                        tmpParent.FieldValue =  inventDim.inventDimId;
+        #                                                        t.RecId = tmpParent.RefRecId;
+        #                                                        tmpParent.write();
+        #                                                        tmpParent.saveRecord(_doupdate, 0, _formRun);
+        #                                                        this.setTmpData(tmpParent);
+        #                                                        ttscommit;
+        #                                                        ds.research();
+        #                                                        ds.findRecord(t);
+        #                                                        return;
+        #                                                     }
+        #                                                     else
+        #                                                     {
+        #                                                        //для массового изменения InventDimId, не только для текущей записи
+        #                                                        if (_parentRecord.RecId == tmpParent.RefRecId)
+        #                                                            t.RecId = tmpParent.RefRecId;
+        #                                                        dictTable = new DictTable(_parentRecord.TableId);
+        #                                                        common = dictTable.makeRecord();
+        #                                                        select forupdate firstonly common where common.RecId == _parentRecord.RecId;
+        #                                                        if (!common.RecId)
+        #                                                            throw error("Запись не найдена!");
+        #                                                        common.(tmpParent.RefFieldId) = inventDim.inventDimId;
+        #                                                        if (_doupdate)
+        #                                                            common.doUpdate();
+        #                                                        else
+        #                                                            common.update();
+        #                                                        ttscommit;
+        #                                                        if (_parentRecord.RecId == tmpParent.RefRecId)
+        #                                                        {
+        #                                                            ds.research();
+        #                                                            ds.findRecord(t);
+        #                                                        }
+        #                                                        return;
+        #                                                     }
+        #                                                }
+        #                                            }
+        #                                        }
+        #                                    }
+        #                                }
+        #                            }
+        #                        }
+        #                        else if (this.RefTableId != tableNum(InventDim))
+        #                        //При изменении складских аналитик подменяем InventDimId <--
+        #                        {
+        #                            if (j == 1)
+        #                                common.(dictField.id()) = value;
+        #                            else
+        #                                common.(fieldid2ext(dictField.id(), j)) = value;
+        #
+        #                            if (_doupdate)
+        #                                common.doupdate();
+        #                            else
+        #                                common.update();
+        #                            break;
+        #                        }
+        #                    }
+        #                }
+        #            }
+        #        }
+        #    }
+        #    ttscommit;
+        #}
+      ENDSOURCE
+      SOURCE #fillForDatasource
+        #static zRecordInfoTmp fillForDatasource(FormRun _formRun)
+        #{
+        #    zRecordInfoTmp          zRecordInfoTmp;
+        #    FormDatasource          ds;
+        #    int                     i;
+        #    KeySum                  KeySum = new KeySum(1, 1);
+        #    int                     repeatCount;
+        #    str                     dsName;
+        #    int                     k;
+        #    int                     m;
+        #    queryBuildDataSource    qbds;
+        #    ;
+        #    for (i = 1; i <= _formRun.dataSourceCount(); i++)
+        #    {
+        #        KeySum.updateNow(_formRun.dataSource(i).cursor().TableId, 1);
+        #    }
+        #
+        #    for (i = 1; i <= _formRun.dataSourceCount(); i++)
+        #    {
+        #        //repeatCount = KeySum.key2Data(_formRun.dataSource(i).cursor().TableId);
+        #        repeatCount = zRecordInfo::key2Data(_formRun.dataSource(i).cursor().TableId, keySum);
+        #        dsName = _formRun.dataSource(i).name();
+        #        /*
+        #        ds = _formRun.dataSource(i);
+        #        for (k = 1; k <= ds.queryRun().query().dataSourceName(ds.name()).childDataSourceCount(); k++)
+        #        {
+        #            dsChild = ds.queryRun().query().dataSourceName(ds.name()).childDataSourceNo(k);
+        #            info(strfmt("%1 -> %2", dsName, dsChild.name()));
+        #            for (m = 1; m <= dsChild.linkCount(); m++)
+        #            {
+        #                info(strfmt("%1.%2 -> %3.%4", tableid2Name(dsChild.link(m).relatedTable()), fieldId2Name(dsChild.link(m).relatedTable(), dsChild.link(m).relatedField()),
+        #                        tableid2Name(dsChild.link(m).table()), fieldId2Name(dsChild.link(m).table(), dsChild.link(m).field())
+        #                      ));
+        #            }
+        #        }
+        #        */
+        #        ds = _formRun.dataSource(i);
+        #        if (ds.queryRun())
+        #        {
+        #            qbds = ds.queryRun().query().dataSourceName(ds.name());
+        #            if (qbds)
+        #                zRecordInfoTmp = zRecordInfoTmp::fillForRecord(qbds, _formRun.dataSource(i).cursor(), zRecordInfoTmp, dsName, i, repeatCount);
+        #        }
+        #    }
+        #    return zRecordInfoTmp;
+        #}
+      ENDSOURCE
+      SOURCE #fillForQueryRun
+        #static client zRecordInfoTmp fillForQueryRun(FormRun _formRun, queryRun queryRun)
+        #{
+        #    zRecordInfoTmp          zRecordInfoTmp;
+        #    FormDatasource          ds;
+        #    int                     i;
+        #    KeySum                  KeySum = new KeySum(1, 1);
+        #    int                     repeatCount;
+        #    str                     dsName;
+        #    int                     k;
+        #    int                     m;
+        #    queryBuildDataSource    qbds;
+        #    common                  common;
+        #    int                     id;
+        #    ;
+        #    for (i = 1; i <= _formRun.dataSourceCount(); i++)
+        #    {
+        #        KeySum.updateNow(_formRun.dataSource(i).cursor().TableId, 1);
+        #    }
+        #
+        #    for (i = 1; i <= _formRun.dataSourceCount(); i++)
+        #    {
+        #        //repeatCount = KeySum.key2Data(_formRun.dataSource(i).cursor().TableId);
+        #        repeatCount = zRecordInfo::key2Data(_formRun.dataSource(i).cursor().TableId, keySum);
+        #        dsName = _formRun.dataSource(i).name();
+        #        /*
+        #        ds = _formRun.dataSource(i);
+        #        for (k = 1; k <= ds.queryRun().query().dataSourceName(ds.name()).childDataSourceCount(); k++)
+        #        {
+        #            dsChild = ds.queryRun().query().dataSourceName(ds.name()).childDataSourceNo(k);
+        #            info(strfmt("%1 -> %2", dsName, dsChild.name()));
+        #            for (m = 1; m <= dsChild.linkCount(); m++)
+        #            {
+        #                info(strfmt("%1.%2 -> %3.%4", tableid2Name(dsChild.link(m).relatedTable()), fieldId2Name(dsChild.link(m).relatedTable(), dsChild.link(m).relatedField()),
+        #                        tableid2Name(dsChild.link(m).table()), fieldId2Name(dsChild.link(m).table(), dsChild.link(m).field())
+        #                      ));
+        #            }
+        #        }
+        #        */
+        #        ds = _formRun.dataSource(i);
+        #        if (queryRun)
+        #        {
+        #            qbds = queryRun.query().dataSourceName(ds.name());
+        #            if (qbds)
+        #            {
+        #                id = qbds.id();
+        #                common = queryRun.getNo(id);
+        #                zRecordInfoTmp = zRecordInfoTmp::fillForRecord(qbds, common, zRecordInfoTmp, dsName, i, repeatCount);
+        #            }
+        #        }
+        #    }
+        #    return zRecordInfoTmp;
+        #}
+      ENDSOURCE
+      SOURCE #fillForRecord
+        #static zRecordInfoTmp fillForRecord(queryBuildDataSource queryBuildDataSource, Common record, zRecordInfoTmp _zRecordInfoTmp = null, str _dsName = "", int _dsNum = 0, int _repeatCount = 1)
+        #{
+        #    zRecordInfoTmp          zRecordInfoTmp;
+        #    DictTable               dictTable;
+        #    DictField               dictField;
+        #    int                     fieldCnt;
+        #    int                     i;
+        #    int                     j;
+        #    int                     arraySize;
+        #    str                     s;
+        #    QueryBuildFieldList     queryBuildFieldList;
+        #    TableId                 rootTableId;
+        #    SysDictField            SysDictField;
+        #    ;
+        #    if (_zRecordInfoTmp)
+        #        zRecordInfoTmp = _zRecordInfoTmp;
+        #
+        #    queryBuildFieldList = queryBuildDataSource.fields();
+        #    if (!queryBuildFieldList.dynamic())
+        #        return zRecordInfoTmp;
+        #
+        #    dictTable = new DictTable(record.TableId);
+        #    fieldCnt  = dictTable.fieldCnt(TableScope::IncludeBaseTables);
+        #
+        #    for (i = 1; i <= fieldCnt; i++)
+        #    {
+        #        dictField = dictTable.fieldObject(dictTable.fieldCnt2Id(i, TableScope::IncludeBaseTables));
+        #
+        #        //dictField = new SysDictField(dictTable.id(), dictTable.fieldCnt2Id(i));
+        #        if(dictField.isSystem())
+        #        {
+        #            //System fields are only stored on the root table, so get the information from there.
+        #            rootTableId = SysDictTable::getRootTable(dictTable.id());
+        #            if (rootTableId != dictTable.id() && dictField.name() != "RecId")
+        #            {
+        #                //info(strFmt("%1 %2", tableId2name(rootTableId), dictField.name()));
+        #                continue;
+        #            }
+        #        }
+        #
+        #        arraySize = dictField.arraySize();
+        #        for (j = 1; j <= arraySize; j++)
+        #        {
+        #            if (dictField.isSql())
+        #            {
+        #                //if (queryBuildFieldList.dynamic() || queryBuildFieldList.fieldKind(i) == SelectionField::Database)
+        #                {
+        #                    zRecordInfoTmp.clear();
+        #                    zRecordInfoTmp.FormDatasourceNum = _dsNum;
+        #                    zRecordInfoTmp.FormDatasourceName = _dsName;
+        #                    zRecordInfoTmp.RefRecId = record.RecId;
+        #                    zRecordInfoTmp.TableName = dictTable.name();
+        #                    if (_dsName && _repeatCount > 1)
+        #                        zRecordInfoTmp.TableName += strfmt(" [%1]", _dsName);
+        #                    zRecordInfoTmp.RefTableId = dictTable.id();
+        #                    zRecordInfoTmp.RefFieldName = dictField.name(DbBackEnd::Native, j) + (arraySize > 1 ? strFmt('[%1]', j) : "");
+        #                    zRecordInfoTmp.RefFieldId = dictField.id();
+        #                    zRecordInfoTmp.FieldArrayIdx = j;
+        #                    zRecordInfoTmp.FieldLabel = dictField.label(j);
+        #                    if (dictField.baseType() == Types::Time)
+        #                    {
+        #                        zRecordInfoTmp.FieldValue = time2str(record.(fieldid2ext(dictField.id(), j)), 1, 1);
+        #                    }
+        #                    else if (dictField.baseType() != Types::Container)
+        #                    {
+        #                        //s = strFmt("%1", dictField.type());
+        #                        zRecordInfoTmp.FieldValue = strfmt("%1", record.(fieldid2ext(dictField.id(), j)));
+        #                    }
+        #                    else
+        #                    {
+        #                        zRecordInfoTmp.FieldValue = "[Container]";
+        #                    }
+        #                    zRecordInfoTmp.insert();
+        #                }
+        #            }
+        #        }
+        #    }
+        #    return zRecordInfoTmp;
+        #}
+      ENDSOURCE
+    ENDMETHODS
+  ENDTABLE
+  
+
+***Element: END

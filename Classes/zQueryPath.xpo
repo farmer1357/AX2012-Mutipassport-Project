@@ -1,0 +1,370 @@
+﻿Exportfile for AOT version 1.0 or later
+Formatversion: 1
+
+***Element: CLS
+
+; 
+; --------------------------------------------------------------------------------
+  CLSVERSION 1
+  
+  CLASS #zQueryPath
+    PROPERTIES
+      Name                #zQueryPath
+      Origin              #{6ACB78A4-B6AE-47D9-A263-761F346E16E6}
+      LegacyId            #50499
+    ENDPROPERTIES
+    
+    METHODS
+      SOURCE #buildPath
+        #protected void buildPath(QueryBuildDatasource _parent, QueryBuildDatasource _child)
+        #{
+        #    str         s;
+        #    ;
+        #    if (_parent)
+        #    {
+        #        if (!mapPath.exists(_parent.name()))
+        #            mapPath.insert(_parent.name(), _parent.name());
+        #        if (!mapPath.exists(_child.name()))
+        #            mapPath.insert(_child.name(), _parent.name() + ";" + _child.name());
+        #        else
+        #        {
+        #            s = mapPath.lookup(_child.name());
+        #            mapPath.remove(_child.name());
+        #            mapPath.insert(_child.name(), s + ";" + _child.name());
+        #
+        #        }
+        #    }
+        #    else
+        #    {
+        #        if (!mapPath.exists(_child.name()))
+        #            mapPath.insert(_child.name(), _child.name());
+        #    }
+        #}
+      ENDSOURCE
+      SOURCE #classDeclaration
+        #//Мультипаспорт записи, 20.03.2017, DEM
+        #//Класс генерирует пути для каждого источника данных на форме, начиная от родителя
+        #class zQueryPath
+        #{
+        #    Map                     mapPath;
+        #    QueryBuildDatasource    firstQbds;
+        #    Query                   Query;
+        #    FormRun                 formRun;
+        #    Object                  zRecordInfoFormRun;
+        #    zRecordInfoTmp          zRecordInfoTmp;
+        #}
+      ENDSOURCE
+      SOURCE #fillPathFormDatasource
+        #protected void fillPathFormDatasource(formDatasource formDatasource)
+        #{
+        #    Query                   localQuery;  // JAAZ, 08.08.01
+        #    QueryBuildDataSource    queryBuildDatasource;
+        #
+        #    Int                     i;
+        #
+        #    if (!formDatasource.queryRun() || !formDatasource.queryRun().Query())
+        #        return;
+        #    localQuery  = formDatasource.queryRun().Query();
+        #
+        #    for (i = 1; i <= localQuery.childDataSourceCount(); i++)
+        #    {
+        #        queryBuildDatasource = localQuery.childDataSourceNo(i);
+        #        this.fillPathQueryDatasource(queryBuildDatasource, null, formDatasource, true, formDatasource.linkType(), formDatasource.name());
+        #    }
+        #}
+      ENDSOURCE
+      SOURCE #fillPathQueryDatasource
+        #protected void fillPathQueryDatasource(QueryBuildDatasource queryBuildDatasource, queryBuildDatasource parentQbds, FormDatasource _formDatasource, boolean top = false, int linkType = 10000, Name _dsName = "")
+        #{
+        #    Int                 i;
+        #
+        #    QueryBuildDatasource    childDatasource;
+        #    QueryBuildFieldList     queryBuildFieldList;
+        #    QueryBuildRange         queryBuildRange;
+        #    QueryBuildLink          queryBuildLink;
+        #    QueryBuildDynaLink      queryBuildDynaLink;
+        #    Query                   localQuery;
+        #
+        #    DictField               dictField;
+        #    JoinMode                joinMode;
+        #    RangeStatus             rangeStatus;
+        #    QueryBuildDatasource    qbds;
+        #    Set                     usedDynalink = new Set(Types::Integer);
+        #    str                     s;
+        #    zRecordInfoTmp          tmp;
+        #
+        #    PartList                partList;
+        #    Object                  obj;
+        #    FormDatasource          formDatasource;
+        #
+        #    boolean partExists(FormRun _formRun, str _name)
+        #    {
+        #        PartList partListLocal = new PartList(_formRun);
+        #        FormRun part;
+        #        int j;
+        #
+        #        for(j = 1; j <= partListLocal.partCount(); j++)
+        #        {
+        #            part = partListLocal.getPartById(j);
+        #
+        #            if (part && part.name() == _name)
+        #            {
+        #                return true;
+        #            }
+        #        }
+        #        return false;
+        #    }
+        #    ;
+        #
+        #    if (!queryBuildDatasource.enabled())
+        #        return;
+        #    if (_dsName && Query.dataSourceName(_dsName) != null)
+        #        return;
+        #    localQuery  = _formDatasource.queryRun().Query();
+        #    joinMode = queryBuildDatasource.joinMode();
+        #
+        #    obj = null; //ссылка на форму-контейнер, в которой содержится эта part
+        #    if (!formRun.pageInteraction())
+        #    {
+        #        partList = new PartList(formRun);
+        #        if (!partList.partCount()) //если на форме нет частей, то предполашаем, что эта форма - часть родительскрй формы, которая находится в args().caller()
+        #        {
+        #            obj = formRun.args();
+        #            if (obj)
+        #                obj = obj.caller(); //получаем родительскую форму
+        #            if (obj && (obj is FormRun))
+        #            {
+        #                if (!partExists(obj, formRun.name())) //проверяем, что текущая форма действительно является частью родительской формы, а не просто вызвана из другой формы
+        #                    obj = null;
+        #            }
+        #        }
+        #    }
+        #
+        #    if (!parentQbds)
+        #    {
+        #        if (firstQbds && queryBuildDataSource.dynalinkCount())
+        #        {
+        #            for (i = 1; i <= queryBuildDataSource.dynalinkCount(); i++)
+        #            {
+        #                queryBuildDynalink = queryBuildDataSource.dynalink(i);
+        #                if (firstQbds.table() == queryBuildDynalink.cursor().TableId)
+        #                {
+        #                    if (!qbds)
+        #                        qbds = firstQbds.addDataSource(queryBuildDataSource.table(), _dsName);
+        #                    qbds.addLink(queryBuildDynalink.dynamicField(), queryBuildDynalink.field());
+        #                    usedDynalink.add(i);
+        #                    this.buildPath(firstQbds, qbds);
+        #                }
+        #            }
+        #        }
+        #        if (!usedDynalink.elements())
+        #        {
+        #            qbds = Query.addDataSource(queryBuildDataSource.table(), _dsName);
+        #            if (!firstQbds)
+        #            {
+        #                firstQbds = qbds;
+        #                this.buildPath(null, firstQbds);
+        #                if (!obj || zRecordInfoFormRun.chkParent())
+        #                {
+        #                    //если форма вызвана из другой формы, то подхватываем связи
+        #                    for (i = 1; i <= queryBuildDataSource.dynalinkCount(); i++)
+        #                    {
+        #                        queryBuildDynalink = queryBuildDataSource.dynalink(i);
+        #                        qbds.addRange(queryBuildDynalink.field()).value(queryValue(queryBuildDynalink.cursor().(queryBuildDynalink.dynamicField())));
+        #                        usedDynalink.add(i);
+        #                    }
+        #                }
+        #            }
+        #        }
+        #    }
+        #    else
+        #    {
+        #        qbds = parentQbds.addDataSource(queryBuildDataSource.table(), _dsName);
+        #        this.buildPath(parentQbds, qbds);
+        #    }
+        #
+        #    qbds.name(_dsName ? _dsName : queryBuildDataSource.name());
+        #    qbds.fetchMode(QueryFetchMode::One2One);
+        #
+        #    if (top && linkType <= 2 && qbds != firstQbds)
+        #    {
+        #        qbds.fetchMode(QueryFetchMode::One2One);
+        #        qbds.joinMode(JoinMode::OuterJoin);
+        #    }
+        #    else
+        #    {
+        #        qbds.joinMode(joinMode);
+        #    }
+        #
+        #    //User Filters
+        #    if (obj && (obj is FormRun))
+        #    {
+        #        formDatasource = obj.dataSource(1);
+        #        localQuery  = formDatasource.queryRun().Query();
+        #        //info(localQuery.datasourceNo(1).toString()); //достаем запрос родительской формы
+        #        for (i = 1; i <= localQuery.queryFilterCount(); i++)
+        #        {
+        #            //info(localQuery.queryFilter(i).toString()); //достаем пользовательские фильтры из родительской формы
+        #            s = localQuery.queryFilter(i).dataSource().name();
+        #            if (localQuery.queryFilter(i).dataSource().name() == qbds.name())
+        #                Query.addQueryFilter(qbds, localQuery.queryFilter(i).field()).value(localQuery.queryFilter(i).value());
+        #            else if (qbds == firstQbds)
+        #            {
+        #                if (localQuery.queryFilter(i).dataSource().table() == qbds.table())
+        #                    Query.addQueryFilter(qbds, localQuery.queryFilter(i).field()).value(localQuery.queryFilter(i).value());
+        #            }
+        #        }
+        #    }
+        #    for (i = 1; i <= localQuery.queryFilterCount(); i++)
+        #    {
+        #        //info(localQuery.queryFilter(i).toString());
+        #        if (localQuery.queryFilter(i).dataSource().name() == qbds.name())
+        #            Query.addQueryFilter(qbds, localQuery.queryFilter(i).field()).value(localQuery.queryFilter(i).value());
+        #    }
+        #
+        #    // Dynalink
+        #    if ((!obj || qbds != firstQbds) && queryBuildDataSource.dynalinkCount())
+        #    {
+        #        for (i = 1; i <= queryBuildDataSource.dynalinkCount(); i++)
+        #        {
+        #            if (usedDynalink.in(i))
+        #                continue;
+        #            queryBuildDynalink = queryBuildDataSource.dynalink(i);
+        #            qbds.addDynalink(queryBuildDynalink.field(), queryBuildDynaLink.cursor(), queryBuildDynalink.dynamicField());
+        #        }
+        #    }
+        #
+        #
+        #    // Ranges
+        #    if (queryBuildDatasource.rangeCount())
+        #    {
+        #        for (i = 1; i <= queryBuildDataSource.rangeCount(); i++)
+        #        {
+        #            queryBuildRange = queryBuildDatasource.range(i);
+        #            qbds.addRange(queryBuildRange.field()).value(queryBuildRange.value());
+        #        }
+        #    }
+        #
+        #    // Relation
+        #    if (queryBuildDatasource.linkCount())
+        #    {
+        #        for (i = 1; i <= queryBuildDatasource.LinkCount(); i++)
+        #        {
+        #            queryBuildLink = queryBuildDatasource.link(i);
+        #            if (queryBuildLink.field() && queryBuildLink.relatedField())
+        #                qbds.addLink(QueryBuildLink.relatedField(), queryBuildLink.field());
+        #            else if (queryBuildLink.joinRelation())
+        #                qbds.relations(true);
+        #//          info(strFmt("%1.%2 -> %3.%4",
+        #//              tableId2Name(queryBuildLink.table()),
+        #//              fieldId2Name(queryBuildLink.table(), queryBuildLink.field()),
+        #//              tableId2Name(QueryBuildLink.relatedTable()),
+        #//              fieldId2Name(queryBuildLink.relatedTable(), queryBuildLink.relatedField())));
+        #
+        #        }
+        #    }
+        #
+        #    // Datasources
+        #    if (queryBuildDataSource.childDataSourceCount())
+        #    {
+        #        for (i = 1; i <= queryBuildDataSource.childDataSourceCount(); i++)
+        #        {
+        #            childDatasource = queryBuildDatasource.childDataSourceNo(i);
+        #            s = childDatasource.name();
+        #            this.fillPathQueryDatasource(childDatasource, qbds, _formDatasource, false, 10000, s);
+        #        }
+        #    }
+        #
+        #}
+      ENDSOURCE
+      SOURCE #needToIncludeInUpdateQuery
+        #//Выщывать для истончников данных, у которых linkType <= 2 (LinkType = Passive, Delayed иои Active)
+        #boolean needToIncludeInUpdateQuery(
+        #                                    str _datasourceName, //название источника данных на форме
+        #                                    zRecordInfoTmp _zRecordInfoTmp //информация о поле, которое будет обновляться в мультипаспорте
+        #                                  )
+        #{
+        #    Container           con;
+        #    int                 i;
+        #    ;
+        #    if (firstQbds && firstQbds.name() == _datasourceName)
+        #        return true;
+        #    if (_datasourceName == _zRecordInfoTmp.FormDatasourceName)
+        #        return true;
+        #    if (!mapPath.exists(_zRecordInfoTmp.FormDatasourceName))
+        #        return false;
+        #    con  = this.path(_zRecordInfoTmp.FormDatasourceName);
+        #    for (i = 1; i <= conLen(con); i++)
+        #    {
+        #        if (conpeek(con, i) == _datasourceName)
+        #            return true;
+        #    }
+        #    return false;
+        #}
+      ENDSOURCE
+      SOURCE #parentDatasourceName
+        #str parentDatasourceName(str _datasourceName)
+        #{
+        #    Container           con;
+        #    int                 i;
+        #    ;
+        #    if (firstQbds && firstQbds.name() == _datasourceName)
+        #        return "";
+        #    if (!mapPath.exists(_datasourceName))
+        #        return "";
+        #    con  = this.path(_datasourceName);
+        #    for (i = 2; i <= conLen(con); i++)
+        #    {
+        #        if (conpeek(con, i) == _datasourceName)
+        #            return conpeek(con, i - 1);
+        #    }
+        #    return "";
+        #}
+      ENDSOURCE
+      SOURCE #path
+        #container path(str _datasorceName)
+        #{
+        #    ;
+        #    if (!mapPath.exists(_datasorceName))
+        #        return connull();
+        #
+        #    return str2Con_RU(mapPath.lookup(_datasorceName), ";");
+        #}
+      ENDSOURCE
+      SOURCE #pathStr
+        #str pathStr(str _datasorceName)
+        #{
+        #    ;
+        #    if (!mapPath.exists(_datasorceName))
+        #        return "";
+        #
+        #    return mapPath.lookup(_datasorceName);
+        #}
+      ENDSOURCE
+      SOURCE #run
+        #void run(FormRun _formRun, zRecordInfoTmp _zRecordInfoTmp, formRun _zRecordInfoFormRun)
+        #{
+        #    int                     dataSourceNo;
+        #    FormBuildDatasource     formDataSource;
+        #    ;
+        #    formRun = _formRun;
+        #    zRecordInfoFormRun = _zRecordInfoFormRun;
+        #    zRecordInfoTmp.setTmpData(_zRecordInfoTmp);
+        #
+        #    Query = new Query();
+        #    firstQbds = null;
+        #    mapPath = new Map(Types::String, Types::String);
+        #    for (datasourceNo = 1; dataSourceNo <= formRun.form().dataSourceCount(); dataSourceNo++)
+        #    {
+        #        formDataSource = formRun.form().dataSource(dataSourceno);
+        #        if (!formDatasource.joinSource() || formDatasource.linkType() <= 2)
+        #        {
+        #            this.fillPathFormDatasource(formRun.dataSource(dataSourceNo));
+        #        }
+        #    }
+        #}
+      ENDSOURCE
+    ENDMETHODS
+  ENDCLASS
+
+***Element: END

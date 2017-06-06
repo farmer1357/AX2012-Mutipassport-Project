@@ -1,0 +1,39 @@
+﻿Exportfile for AOT version 1.0 or later
+Formatversion: 1
+
+***Element: SPV
+
+; 
+; --------------------------------------------------------------------------------
+  VERSION 1
+  
+  PRIVILEGE #zMultiPassport
+    PROPERTIES
+      Name                #zMultiPassport
+      Label               #Мультипаспорт
+      Description         #Мультипаспорт
+      Origin              #{A932E3AB-1C02-4FFB-835C-EF8927A8034D}
+    ENDPROPERTIES
+    
+    ENTRYPOINTS #Entry Points
+    ENDENTRYPOINTS
+    
+  PERMISSIONSET #Permissions
+    PROPERTIES
+    ENDPROPERTIES
+    
+    TABLES #Tables
+    ENDTABLES
+    
+  SERVERMETHODS #Server Methods
+  ENDSERVERMETHODS
+  
+FORMS #Forms
+ENDFORMS
+
+ENDPERMISSIONSET
+
+ENDPRIVILEGE
+
+
+***Element: END

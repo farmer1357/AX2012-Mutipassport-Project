@@ -1,0 +1,380 @@
+﻿Exportfile for AOT version 1.0 or later
+Formatversion: 1
+
+***Element: FRM
+
+; 
+; --------------------------------------------------------------------------------
+FRMVERSION 12
+
+FORM #zRecordInfoScript
+  PROPERTIES
+    Name                #zRecordInfoScript
+    Origin              #{E0ABC5E4-E2A9-4387-B4A1-D879E6E9CCA6}
+  ENDPROPERTIES
+  
+  METHODS
+    SOURCE #classDeclaration
+      #//Мультипаспорт записи, 29.03.2017, DEM
+      #public class FormRun extends ObjectRun
+      #{
+      #    zRecordInfoTmp          zRecordInfoTmp;
+      #    boolean                 doUpdate;
+      #    zRecordInfoScriptName   loadedScript;
+      #}
+    ENDSOURCE
+    SOURCE #addToScript
+      #void addToScript(zRecordInfoTmp _zRecordInfoTmp, boolean _toCurrentPosition)
+      #{
+      #    str             s;
+      #    str             t;
+      #    int             i;
+      #    container       con;
+      #    int             selStart, selLen;
+      #    ;
+      #    if (!StringEdit.text() || !_toCurrentPosition)
+      #    {
+      #        s = zRecordInfoExpression::promptForSelectedField(_zRecordInfoTmp);
+      #        if (!StringEdit.text())
+      #            t = "\n    ;\n";
+      #        else
+      #            t = StringEdit.text();
+      #        StringEdit.text(t + "\n" + s);
+      #        s = StringEdit.text();
+      #        i = strlen(s);
+      #        con = str2CON_RU(s, "\n");
+      #        i += conLen(con);
+      #        StringEdit.setSelection(i - 2, i - 2);
+      #    }
+      #    else
+      #    {
+      #        s = zRecordInfoExpression::promptForSelectedField2(_zRecordInfoTmp);
+      #        [selStart, selLen] = StringEdit.getSelection();
+      #
+      #        t = StringEdit.valueStr();
+      #        t = strrem(substr(t, 1, selStart) + s + substr(t, selStart + 1, 50000), "\r");
+      #        //t = strreplace(t, "\n", "\r\n");
+      #        StringEdit.text(t);
+      #        selStart += strlen(s);
+      #        StringEdit.setSelection(selStart, selStart);
+      #    }
+      #}
+    ENDSOURCE
+    SOURCE #close
+      #public void close()
+      #{
+      #    ;
+      #    element.args().caller().sciptClosed();
+      #    super();
+      #}
+    ENDSOURCE
+    SOURCE #init
+      #public void init()
+      #{
+      #    str         s;
+      #    ;
+      #    super();
+      #    if (element.args() && element.args().record() && element.args().record().RecId &&
+      #        element.args().record().TableId == tableNum(zRecordInfoTmp))
+      #    {
+      #        zRecordInfoTmp = element.args().record();
+      #        if (element.args().parm() == "doUpdate")
+      #            doUpdate = true;
+      #    }
+      #}
+    ENDSOURCE
+  ENDMETHODS
+  OBJECTBANK
+    PROPERTIES
+    ENDPROPERTIES
+    
+  ENDOBJECTBANK
+  
+  REFERENCEDATASOURCES
+  ENDREFERENCEDATASOURCES
+  
+  JOINS
+  ENDJOINS
+  
+  PARTREFERENCES
+  ENDPARTREFERENCES
+  
+  DESIGN
+    PROPERTIES
+      Caption             #Скрипт для мультипаспорта
+    ENDPROPERTIES
+    
+    CONTAINER
+      CONTROL BUTTONGROUP
+        PROPERTIES
+          Name                #ButtonGroup
+          ElementPosition     #1789569705
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL BUTTON
+        PROPERTIES
+          Name                #btnExec
+          ElementPosition     #715827882
+          HierarchyParent     #ButtonGroup
+          Text                #Выполнить
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #clicked
+            #void clicked()
+            #{
+            #    zRecordInfoExpression       zRecordInfoExpression;
+            #    ;
+            #    zRecordInfoExpression = zRecordInfoExpression::construct();
+            #    if (element.args().caller().chkParent() || element.args().caller().chkForAll())
+            #    {
+            #        element.args().caller().execExpression(StringEdit.text(), zRecordInfoExpression);
+            #    }
+            #    else
+            #    {
+            #        zRecordInfoExpression.execExpression(zRecordInfoTmp, StringEdit.text(), doUpdate,  element.args().caller());
+            #    }
+            #
+            #}
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL BUTTON
+        PROPERTIES
+          Name                #btnLoad
+          ElementPosition     #1789569705
+          HierarchyParent     #ButtonGroup
+          Text                #Загрузить
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #clicked
+            #void clicked()
+            #{
+            #    Dialog                  d = new Dialog("Загрузка скрипта", this);
+            #    DialogField             df = d.addField(extendedtypeStr(zRecordInfoScriptName));
+            #    zRecordInfoSavedScript  zRecordInfoSavedScript;
+            #    str                     t;
+            #    ;
+            #    if (!d.run())
+            #        return;
+            #    if (!df.value())
+            #        throw error("Укажите название скрипта!");
+            #
+            #    select firstonly zRecordInfoSavedScript where zRecordInfoSavedScript.Name == df.value();
+            #    if (!zRecordInfoSavedScript.RecId)
+            #        throw error(strfmt("Скрипт с названием '%1' не найден!", df.value()));
+            #
+            #    loadedScript = df.value();
+            #    [t] = zRecordInfoSavedScript.Script;
+            #    StringEdit.text(t);
+            #}
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL BUTTON
+        PROPERTIES
+          Name                #btnSave
+          ElementPosition     #1431655764
+          HierarchyParent     #ButtonGroup
+          Text                #Сохранить
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #clicked
+            #void clicked()
+            #{
+            #    Dialog                  d = new Dialog("Сохранение скрипта", this);
+            #    DialogField             df = d.addFieldValue(extendedtypeStr(zRecordInfoScriptName), loadedScript);
+            #    zRecordInfoSavedScript  zRecordInfoSavedScript;
+            #    str                     t;
+            #    ;
+            #    if (!d.run())
+            #        return;
+            #    if (!df.value())
+            #        throw error("Укажите название скрипта!");
+            #
+            #    t = StringEdit.valueStr();
+            #    t = strrem(t, "\r");
+            #
+            #    loadedScript = df.value();
+            #
+            #    select firstonly zRecordInfoSavedScript where zRecordInfoSavedScript.Name == loadedScript;
+            #    if (zRecordInfoSavedScript.RecId)
+            #    {
+            #        if (Box::yesNo("Скрипт с таким названием уже существует. Перезаписать?", DialogButton::Yes)== DialogButton::No)
+            #            return;
+            #        ttsbegin;
+            #        select forupdate firstonly zRecordInfoSavedScript where zRecordInfoSavedScript.Name == loadedScript;
+            #        zRecordInfoSavedScript.Name = loadedScript;
+            #        zRecordInfoSavedScript.Script = [t];
+            #        zRecordInfoSavedScript.update();
+            #        ttscommit;
+            #    }
+            #    else
+            #    {
+            #        zRecordInfoSavedScript.Name = loadedScript;
+            #        zRecordInfoSavedScript.Script = [t];
+            #        zRecordInfoSavedScript.insert();
+            #    }
+            #}
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL SEPARATOR
+        PROPERTIES
+          Name                #Separator
+          ElementPosition     #1073741823
+          HierarchyParent     #ButtonGroup
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STATICTEXT
+        PROPERTIES
+          Name                #StaticText
+          ElementPosition     #715827882
+          Text                #Посказка: выбирайте поля в мультипаспорте и нажимайте кнопку 'Скрипт' для добавления полей в этот скрипт, не закрывая эту форму.
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STATICTEXT
+        PROPERTIES
+          Name                #StaticText1
+          ElementPosition     #1073741823
+          Text                #Можно использовать множественный выбор, при этом выбранные поля будут помещены в конец скрипта.
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STATICTEXT
+        PROPERTIES
+          Name                #StaticText2
+          ElementPosition     #1431655764
+          Text                #Объявления переменных пишите перед первой точкой  с запятой
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STRINGEDIT
+        PROPERTIES
+          Name                #StringEdit
+          AutoDeclaration     #Yes
+          Width               #Column width
+          Height              #Column height
+          ElementPosition     #357913941
+          MultiLine           #Yes
+          Font                #System
+          FontSize            #10
+          Bold                #Thin
+          CharacterSet        #204
+          LabelPosition       #Above
+          LabelAlignment      #Right
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+    ENDCONTAINER
+    
+  ENDDESIGN
+  
+  PERMISSIONS #Permissions
+    PROPERTIES
+    ENDPROPERTIES
+    
+    PERMISSIONSET #Read
+      PROPERTIES
+      ENDPROPERTIES
+      
+      FORM #Controls
+      ENDFORM
+      
+    TABLES #Tables
+    ENDTABLES
+    
+  SERVERMETHODS #Server Methods
+  ENDSERVERMETHODS
+  
+ASSOCIATEDFORMS #Associated Forms
+ENDASSOCIATEDFORMS
+
+ENDPERMISSIONSET
+
+PERMISSIONSET #Update
+  PROPERTIES
+  ENDPROPERTIES
+  
+  FORM #Controls
+  ENDFORM
+  
+TABLES #Tables
+ENDTABLES
+
+SERVERMETHODS #Server Methods
+ENDSERVERMETHODS
+
+ASSOCIATEDFORMS #Associated Forms
+ENDASSOCIATEDFORMS
+
+ENDPERMISSIONSET
+
+PERMISSIONSET #Create
+  PROPERTIES
+  ENDPROPERTIES
+  
+  FORM #Controls
+  ENDFORM
+  
+TABLES #Tables
+ENDTABLES
+
+SERVERMETHODS #Server Methods
+ENDSERVERMETHODS
+
+ASSOCIATEDFORMS #Associated Forms
+ENDASSOCIATEDFORMS
+
+ENDPERMISSIONSET
+
+PERMISSIONSET #Delete
+  PROPERTIES
+  ENDPROPERTIES
+  
+  FORM #Controls
+  ENDFORM
+  
+TABLES #Tables
+ENDTABLES
+
+SERVERMETHODS #Server Methods
+ENDSERVERMETHODS
+
+ASSOCIATEDFORMS #Associated Forms
+ENDASSOCIATEDFORMS
+
+ENDPERMISSIONSET
+
+ENDPERMISSIONS
+
+ENDFORM
+
+
+***Element: END

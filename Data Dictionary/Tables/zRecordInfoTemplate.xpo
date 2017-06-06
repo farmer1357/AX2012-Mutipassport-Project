@@ -1,0 +1,104 @@
+﻿Exportfile for AOT version 1.0 or later
+Formatversion: 1
+
+***Element: DBT
+
+; 
+; --------------------------------------------------------------------------------
+  TABLEVERSION 1
+  
+  TABLE #zRecordInfoTemplate
+    EnforceFKRelation 0
+    PROPERTIES
+      Name                #zRecordInfoTemplate
+      Label               #Набор полей для мультипаспорта записи
+      CreateRecIdIndex    #Yes
+      Origin              #{A7E76442-4321-4DA5-821D-FDEF5D62F102}
+      LegacyId            #50497
+    ENDPROPERTIES
+    
+    FIELDS
+      FIELD #DatasourceName
+        STRING
+        PROPERTIES
+          Name                #DatasourceName
+          Label               #Источник данных
+          HelpText            #Источник данных
+          Table               #zRecordInfoTemplate
+          Origin              #{F86E1E76-64F0-46A0-96E5-597405848CCF}
+          LegacyId            #50001
+          StringSize          #250
+        ENDPROPERTIES
+        
+      FIELD #Name
+        STRING
+        PROPERTIES
+          Name                #Name
+          Table               #zRecordInfoTemplate
+          Origin              #{38E4D31D-B43B-4248-A9E4-28CE4E5E37C7}
+          LegacyId            #50002
+          ExtendedDataType    #Name
+          StringSize          #100
+        ENDPROPERTIES
+        
+    ENDFIELDS
+    GROUPS
+    ENDGROUPS
+    
+    INDICES
+      #DatasourceNameIdx
+      PROPERTIES
+        Name                #DatasourceNameIdx
+        Origin              #{EA7F6931-2B57-4E94-B56A-0F29F51EE071}
+        LegacyId            #50001
+      ENDPROPERTIES
+      
+      INDEXFIELDS
+        #DatasourceName
+      ENDINDEXFIELDS
+      
+      #NameIdx
+      PROPERTIES
+        Name                #NameIdx
+        Origin              #{D25B47D1-7CAC-4FC0-AB0C-B7D0625BA676}
+        LegacyId            #50002
+      ENDPROPERTIES
+      
+      INDEXFIELDS
+        #Name
+      ENDINDEXFIELDS
+      
+      #DatasourceNameTableNameIdx
+      PROPERTIES
+        Name                #DatasourceNameTableNameIdx
+        AllowDuplicates     #No
+        Origin              #{B982A45F-0999-4CD2-BA95-9562FD466D27}
+        LegacyId            #50003
+      ENDPROPERTIES
+      
+      INDEXFIELDS
+        #DatasourceName
+        #Name
+      ENDINDEXFIELDS
+      
+    ENDINDICES
+    FULLTEXTINDICES
+    ENDFULLTEXTINDICES
+    REFERENCES
+    ENDREFERENCES
+    
+    DELETEACTIONS
+      #zRecordInfoTemplateLine
+      PROPERTIES
+        Table               #zRecordInfoTemplateLine
+        DeleteAction        #Cascade
+      ENDPROPERTIES
+      
+    ENDDELETEACTIONS
+    
+    METHODS
+    ENDMETHODS
+  ENDTABLE
+  
+
+***Element: END

@@ -1,0 +1,307 @@
+﻿Exportfile for AOT version 1.0 or later
+Formatversion: 1
+
+***Element: FRM
+
+; 
+; --------------------------------------------------------------------------------
+FRMVERSION 12
+
+FORM #zSysLookup
+  PROPERTIES
+    Name                #zSysLookup
+    Origin              #{1B344243-402A-4705-8085-08CEBB368FA4}
+  ENDPROPERTIES
+  
+  METHODS
+    SOURCE #classDeclaration
+      #class FormRun extends ObjectRun
+      #{
+      #    boolean         first;
+      #    boolean         mouseSelect;
+      #    enumId          enumId;
+      #}
+    ENDSOURCE
+    SOURCE #closeSelect
+      #void closeSelect(str p1)
+      #{
+      #    int     idx;
+      #    FormListItem    formListItem;
+      #
+      #    if (!p1 && mouseSelect)
+      #    {
+      #
+      #        idx = enumList.getNextItem(FormListNext::Selected);
+      #
+      #        while(idx != -1)
+      #        {
+      #            formListItem = enumList.getItem(idx);
+      #            p1 += (strlen(p1) > 0 ? ',' : '')+element.enumString(formListItem.text());
+      #            idx = enumList.getNextItem(FormListNext::Selected, idx);
+      #        }
+      #    }
+      #
+      #    super(p1);
+      #
+      #}
+    ENDSOURCE
+    SOURCE #enumString
+      #str enumString(str string)
+      #{
+      #    if(strscan(string, ' ', 1, strlen(string)))
+      #    {
+      #        return '\"' + string + '\"';
+      #    }
+      #    else
+      #    {
+      #        return string;
+      #    }
+      #}
+    ENDSOURCE
+    SOURCE #init
+      #void init()
+      #{
+      #    super();
+      #
+      #    first           = true;
+      #    enumId          = str2int(element.args().parm());
+      #}
+    ENDSOURCE
+    SOURCE #nextField
+      #void nextField(int flags=1)
+      #{
+      #    super(flags);
+      #    element.returnSelection();
+      #}
+    ENDSOURCE
+    SOURCE #returnSelection
+      #void returnSelection()
+      #{
+      #    str     selectionString;
+      #    int     idx;
+      #    FormListItem    formListItem;
+      #
+      #    idx = enumList.getNextItem(FormListNext::Selected);
+      #
+      #    while(idx != -1)
+      #    {
+      #        formListItem = enumList.getItem(idx);
+      #        selectionString += (strlen(selectionString) > 0 ? ',' : '')+element.enumString(formListItem.text());
+      #        idx = enumList.getNextItem(FormListNext::Selected, idx);
+      #    }
+      #
+      #    element.closeSelect(selectionString);
+      #}
+    ENDSOURCE
+    SOURCE #run
+      #void run()
+      #{
+      #    FormListItem        formListItem;
+      #    DictEnum            dictEnum = new DictEnum(enumId);
+      #    int                 values;
+      #    int                 idx;
+      #    int                 i;
+      #    ;
+      #    enumList.addColumn(1,new FormListColumn(dictEnum.label() ? dictEnum.label() : dictEnum.name(),1, enumList.widthValue()-15));
+      #
+      #    values = dictEnum.values();
+      #    for (i=0; i < values; i++)
+      #    {
+      #        if (isConfigurationKeyEnabled(dictEnum.index2ConfigurationKey(i)))
+      #        {
+      #            // BP deviation documented
+      #            formListItem = new FormListItem(dictEnum.index2Label(i));
+      #            formListItem.idx(idx);
+      #            enumList.addItem(formListItem);
+      #            idx = formListItem.idx()+1;
+      #        }
+      #    }
+      #
+      #    formListItem = enumList.getItem(0);
+      #    formListItem.stateFocus(true);
+      #    formListItem.stateSelected(true);
+      #    enumList.setItem(formListItem);
+      #
+      #    enumList.setFocus();
+      #    super();
+      #
+      #}
+    ENDSOURCE
+    SOURCE #task
+      #int task(int p1)
+      #{
+      #    #task
+      #    int ret;
+      #
+      #
+      #    ret = super(p1);
+      #
+      #    if(p1 == #taskEnter)
+      #        element.returnSelection();
+      #
+      #    return ret;
+      #
+      #}
+    ENDSOURCE
+  ENDMETHODS
+  OBJECTBANK
+    PROPERTIES
+    ENDPROPERTIES
+    
+  ENDOBJECTBANK
+  
+  REFERENCEDATASOURCES
+  ENDREFERENCEDATASOURCES
+  
+  JOINS
+  ENDJOINS
+  
+  PARTREFERENCES
+  ENDPARTREFERENCES
+  
+  DESIGN
+    PROPERTIES
+      Left                #15
+      Top                 #15
+      Frame               #Border
+      WindowType          #Popup
+      SetCompany          #No
+      TopMargin           #2
+      BottomMargin        #0
+      LeftMargin          #0
+      RightMargin         #0
+      HideIfEmpty         #No
+    ENDPROPERTIES
+    
+    CONTAINER
+      CONTROL LISTVIEW
+        PROPERTIES
+          Name                #EnumList
+          Width               #150
+          Height              #150
+          ElementPosition     #1073741823
+          ViewType            #Report
+          ColumnHeaderButton  #Yes
+          SingleSelection     #No
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #mouseDown
+            #int mouseDown(int x, int y, int button, boolean ctrl, boolean shift)
+            #{
+            #    int ret;
+            #
+            #    ret = super(x, y, button, ctrl, shift);
+            #    mouseSelect = true;
+            #
+            #    return ret;
+            #}
+          ENDSOURCE
+          SOURCE #selectionChanged
+            #void selectionChanged(int idx, anytype data)
+            #{
+            #    int selCount;
+            #    ;
+            #    super(idx, data);
+            #
+            #    selCount = enumList.getSelectedCount();
+            #    if (!first && mouseSelect && selCount != 0)
+            #    {
+            #        mouseSelect = false;
+            #        element.returnSelection();
+            #    }
+            #    else
+            #    {
+            #        first = false;
+            #    }
+            #}
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+    ENDCONTAINER
+    
+  ENDDESIGN
+  
+  PERMISSIONS #Permissions
+    PROPERTIES
+    ENDPROPERTIES
+    
+    PERMISSIONSET #Read
+      PROPERTIES
+      ENDPROPERTIES
+      
+      FORM #Controls
+      ENDFORM
+      
+    TABLES #Tables
+    ENDTABLES
+    
+  SERVERMETHODS #Server Methods
+  ENDSERVERMETHODS
+  
+ASSOCIATEDFORMS #Associated Forms
+ENDASSOCIATEDFORMS
+
+ENDPERMISSIONSET
+
+PERMISSIONSET #Update
+  PROPERTIES
+  ENDPROPERTIES
+  
+  FORM #Controls
+  ENDFORM
+  
+TABLES #Tables
+ENDTABLES
+
+SERVERMETHODS #Server Methods
+ENDSERVERMETHODS
+
+ASSOCIATEDFORMS #Associated Forms
+ENDASSOCIATEDFORMS
+
+ENDPERMISSIONSET
+
+PERMISSIONSET #Create
+  PROPERTIES
+  ENDPROPERTIES
+  
+  FORM #Controls
+  ENDFORM
+  
+TABLES #Tables
+ENDTABLES
+
+SERVERMETHODS #Server Methods
+ENDSERVERMETHODS
+
+ASSOCIATEDFORMS #Associated Forms
+ENDASSOCIATEDFORMS
+
+ENDPERMISSIONSET
+
+PERMISSIONSET #Delete
+  PROPERTIES
+  ENDPROPERTIES
+  
+  FORM #Controls
+  ENDFORM
+  
+TABLES #Tables
+ENDTABLES
+
+SERVERMETHODS #Server Methods
+ENDSERVERMETHODS
+
+ASSOCIATEDFORMS #Associated Forms
+ENDASSOCIATEDFORMS
+
+ENDPERMISSIONSET
+
+ENDPERMISSIONS
+
+ENDFORM
+
+
+***Element: END

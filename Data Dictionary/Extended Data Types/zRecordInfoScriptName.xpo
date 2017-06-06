@@ -1,0 +1,40 @@
+﻿Exportfile for AOT version 1.0 or later
+Formatversion: 1
+
+***Element: UTS
+
+; 
+; --------------------------------------------------------------------------------
+  USERTYPEVERSION 6
+  
+  USERTYPE #zRecordInfoScriptName
+  STRING
+    PROPERTIES
+      Name                #zRecordInfoScriptName
+      Label               #Название скрипта
+      HelpText            #Название скрипта
+      DisplayLength       #80
+      Origin              #{A56B70E1-952D-47DF-AF3B-688C9CB92554}
+      LegacyId            #50528
+      StringSize          #250
+    ENDPROPERTIES
+    
+    TYPEELEMENTS
+    ENDTYPEELEMENTS
+    
+    TYPEREFERENCES
+      TYPEREFERENCETYPE DATASET
+      PROPERTIES
+        Table               #zRecordInfoSavedScript
+        RelatedField        #Name
+      ENDPROPERTIES
+      
+    ENDTYPEREFERENCES
+    
+    TYPELOOKUPS
+    ENDTYPELOOKUPS
+    
+  ENDUSERTYPE
+  
+
+***Element: END

@@ -1,0 +1,96 @@
+﻿Exportfile for AOT version 1.0 or later
+Formatversion: 1
+
+***Element: DBT
+
+; 
+; --------------------------------------------------------------------------------
+  TABLEVERSION 1
+  
+  TABLE #zRecordInfoTemplateLine
+    EnforceFKRelation 0
+    PROPERTIES
+      Name                #zRecordInfoTemplateLine
+      Label               #Поля из набора для мультипаспорта записи
+      Origin              #{CA435AB0-6DC2-4E6D-A1D6-8CC1C09909EF}
+      LegacyId            #50498
+    ENDPROPERTIES
+    
+    FIELDS
+      FIELD #DatasourceName
+        STRING
+        PROPERTIES
+          Name                #DatasourceName
+          Table               #zRecordInfoTemplateLine
+          Origin              #{907EE816-98FE-4754-9238-359487F7EDFA}
+          LegacyId            #50003
+          StringSize          #250
+        ENDPROPERTIES
+        
+      FIELD #RefFieldName
+        STRING
+        PROPERTIES
+          Name                #RefFieldName
+          Table               #zRecordInfoTemplateLine
+          Origin              #{FE682CC8-9456-4835-A801-E5B8156F934F}
+          LegacyId            #50001
+          ExtendedDataType    #RefFieldName
+          StringSize          #40
+        ENDPROPERTIES
+        
+      FIELD #RefzRecordInfoTemplateRecId
+        INT64
+        PROPERTIES
+          Name                #RefzRecordInfoTemplateRecId
+          Table               #zRecordInfoTemplateLine
+          Origin              #{719FEFCF-BEEB-45A9-9506-0A17D90E75E7}
+          LegacyId            #50010
+          ExtendedDataType    #RefRecId
+        ENDPROPERTIES
+        
+    ENDFIELDS
+    GROUPS
+    ENDGROUPS
+    
+    INDICES
+      #RefzRecordInfoTemplateRecIdIdx
+      PROPERTIES
+        Name                #RefzRecordInfoTemplateRecIdIdx
+        Origin              #{1AB14A1E-8E06-4A12-83E9-2AE75608005C}
+        LegacyId            #50001
+      ENDPROPERTIES
+      
+      INDEXFIELDS
+        #RefzRecordInfoTemplateRecId
+      ENDINDEXFIELDS
+      
+    ENDINDICES
+    FULLTEXTINDICES
+    ENDFULLTEXTINDICES
+    REFERENCES
+      REFERENCE #zRecordInfoTemplate
+        PROPERTIES
+          Name                #zRecordInfoTemplate
+          Table               #zRecordInfoTemplate
+        ENDPROPERTIES
+        
+        FIELDREFERENCES
+          REFERENCETYPE NORMAL
+          PROPERTIES
+            Field               #RefzRecordInfoTemplateRecId
+            RelatedField        #RecId
+          ENDPROPERTIES
+          
+        ENDFIELDREFERENCES
+      ENDREFERENCE
+    ENDREFERENCES
+    
+    DELETEACTIONS
+    ENDDELETEACTIONS
+    
+    METHODS
+    ENDMETHODS
+  ENDTABLE
+  
+
+***Element: END
